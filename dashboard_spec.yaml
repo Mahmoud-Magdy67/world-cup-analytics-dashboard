@@ -1,0 +1,23 @@
+version: 1
+project: world-cup-analytics-dashboard
+status: mock-data-first-release
+allowed_future_bigquery_dataset_placeholders:
+  - PROJECT_ID.worldcup_2026
+  - PROJECT_ID.worldcup_analytics
+  - PROJECT_ID.worldcup_predictions
+rules:
+  bigquery_access: read-only
+  destructive_data_operations: forbidden
+  allowed_sql_operations: [SELECT]
+  forbidden_sql_operations: [INSERT, UPDATE, DELETE, MERGE, CREATE, DROP, ALTER]
+required_pages:
+  - Tournament Overview
+  - Team Performance
+  - Player Analysis
+  - Match Analysis
+  - Predictions / Model Results
+  - Data & Methodology
+automation:
+  update_method: Hermes may edit repository files through the Gitea API.
+  branch: main
+  retrieve_current_file_sha_before_update: true
