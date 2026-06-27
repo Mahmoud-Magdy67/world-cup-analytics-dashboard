@@ -1,3 +1,4 @@
+# smoke test intentionally avoids external calls
 import importlib.util
 import sys
 from pathlib import Path
