@@ -1,0 +1,3 @@
+from pages._shared import *
+page_header('Data & Methodology','Document current mock-data assumptions and the future read-only BigQuery integration path.')
+status=get_data_source_status(); kpi_cards([("Data mode",status.mode,"first commit"),("BigQuery enabled",str(status.bigquery_enabled),"read-only later"),("Allowed placeholders",len(ALLOWED_BIGQUERY_DATASET_PLACEHOLDERS),"documented")]); method_df=pd.DataFrame({"source":["Mock teams","Mock players","Mock matches","Mock predictions"],"records":[len(get_mock_teams()),len(get_mock_players()),len(get_mock_matches()),len(get_mock_predictions())]}); st.plotly_chart(px.pie(method_df,names="source",values="records",title="Current mock-data coverage"),use_container_width=True)
