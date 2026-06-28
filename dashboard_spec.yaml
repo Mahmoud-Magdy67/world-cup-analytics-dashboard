@@ -1,10 +1,11 @@
 version: 1
 project: world-cup-analytics-dashboard
-status: mock-data-first-release
-allowed_future_bigquery_dataset_placeholders:
-  - PROJECT_ID.worldcup_2026
-  - PROJECT_ID.worldcup_analytics
-  - PROJECT_ID.worldcup_predictions
+status: production-bigquery-connected
+bigquery_project_id: project-2f1e456e-b1be-4551-92b
+allowed_bigquery_datasets:
+  - worldcup_2026
+  - worldcup_analytics
+  - worldcup_predictions
 rules:
   bigquery_access: read-only
   destructive_data_operations: forbidden
