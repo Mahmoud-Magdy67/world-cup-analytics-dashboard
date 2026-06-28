@@ -20,18 +20,31 @@ def load_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
     
     /* Global Styles & Background */
-    .stApp {
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: #ffffff;
-        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('https://images.unsplash.com/photo-1518605368461-1e125228114e?q=80&w=2000&auto=format&fit=crop');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('https://images.unsplash.com/photo-1518605368461-1e125228114e?q=80&w=2000&auto=format&fit=crop') !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
     }
     
-    /* Force Bebas Neue on absolutely everything to match WC26 brand guidelines */
-    * {
-        font-family: 'Bebas Neue', sans-serif !important;
-        letter-spacing: 0.05em !important;
+    /* Fix sidebar arrow rendering */
+    [data-testid="collapsedControl"] svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+    }
+    
+    
+    /* Force Bebas Neue on main text but preserve Material Icons for Streamlit UI */
+    h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, button {
+        font-family: 'Bebas Neue', sans-serif;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Explicitly protect material icons so arrows don't break */
+    .material-icons, [class^="st-"], svg, path {
+        font-family: inherit;
+        letter-spacing: normal;
     }
     
     h1, h2, h3, h4, h5, h6 {

@@ -18,7 +18,7 @@ load_custom_css()
 page_header(
     "Executive Overview",
     "Tournament intelligence, championship projections, and cross-dimensional analytics",
-    image_url="https://upload.wikimedia.org/wikipedia/en/thumb/7/7b/2026_FIFA_World_Cup_Logo.svg/512px-2026_FIFA_World_Cup_Logo.svg.png"
+    image_url="https://cdn.worldvectorlogo.com/logos/fifa-world-cup-2026-1.svg"
 )
 
 # ============================================================================
