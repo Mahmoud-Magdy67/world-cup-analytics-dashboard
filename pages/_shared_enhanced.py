@@ -186,10 +186,19 @@ def load_custom_css():
 
 def page_header(title: str, description: str, icon: str = "⚽", image_url: str = None):
     """Create a professional page header with icon/image and description."""
+    import os
+    import base64
+    
     col1, col2 = st.columns([1, 10])
     with col1:
         if image_url:
-            st.markdown(f"<img src='{image_url}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
+            # If it's a local file path
+            if os.path.exists(image_url):
+                with open(image_url, "rb") as image_file:
+                    encoded_string = base64.b64encode(image_file.read()).decode()
+                st.markdown(f"<img src='data:image/png;base64,{encoded_string}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<img src='{image_url}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div style='font-size: 3.5rem; text-align: center;'>{icon}</div>", unsafe_allow_html=True)
     with col2:
