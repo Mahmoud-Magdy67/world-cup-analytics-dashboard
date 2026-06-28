@@ -237,15 +237,14 @@ for tab, group in zip(tabs, groups):
             'round32_probability_pct'
         ]
         
-        styled = group_data[display_cols].style.format({
+        # Simple formatting without background_gradient (requires matplotlib)
+        styled = group_data[display_cols].format({
             'avg_group_points': '{:.2f}',
             'avg_group_goal_difference': '{:+.2f}',
             'group_winner_probability_pct': '{:.1f}%',
             'group_runner_up_probability_pct': '{:.1f}%',
             'round32_probability_pct': '{:.1f}%'
-        }).background_gradient(
-            subset=['avg_group_points'], cmap='Blues'
-        )
+        })
         
         st.dataframe(styled, use_container_width=True, hide_index=True, height=300)
 
