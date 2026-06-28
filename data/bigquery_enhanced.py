@@ -160,15 +160,14 @@ def get_team_attributes() -> pd.DataFrame:
     SELECT 
         team_name, fifa_code, group_name, continent, confederation,
         elo_rating, total_market_value_eur, market_value_index,
-        fc_rating, hybrid_power_score, real_world_score, fc_eye_test_score,
+        vfc2_hybrid_power_score, real_world_score, fc_eye_test_score,
         avg_ovr_top23, avg_ovr_top11, best_player_ovr,
         gk_strength, defense_strength, midfield_strength, attack_strength,
-        shooting_attack_rating, passing_creation_rating, defending_rating,
         top23_goals, top23_assists, top23_xg, top23_xa,
         goalkeeper_save_rate, avg_club_last10_points_per_match,
         real_player_performance_score
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.ml_fc_real_hybrid_team_attributes_vfc_2`
-    ORDER BY hybrid_power_score DESC
+    ORDER BY vfc2_hybrid_power_score DESC
     """
     try:
         return _execute_readonly_query(query)
@@ -197,7 +196,6 @@ def get_players(limit: int = 500) -> pd.DataFrame:
         progressive_passes, progressive_carries, progressive_receives,
         gk_minutes, gk_goals_against, gk_save_pct, gk_clean_sheets
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
-    WHERE nation_code IN (SELECT DISTINCT fifa_code FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_teams_clean`)
     ORDER BY goals DESC, assists DESC, xg DESC
     LIMIT {limit}
     """
@@ -323,11 +321,11 @@ def get_stage_probabilities() -> pd.DataFrame:
     """
     query = f"""
     SELECT 
-        team_name, group_name, stage, stage_order,
+        team_name, group_name, stage,
         simulation_count, probability_pct,
         simulation_runs, model_method
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_stage_probability_dashboard_v15_live_10m`
-    ORDER BY stage_order, probability_pct DESC
+    ORDER BY stage, probability_pct DESC
     """
     try:
         return _execute_readonly_query(query)
