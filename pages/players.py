@@ -177,10 +177,9 @@ if sel_player != "None" and not percentiles.empty:
                 f"{sel_player}'s standout attribute is **{top_attr}** (P{np.argmax(radar_vals)+1} percentile). "
                 f"The radar compares the player against all World Cup squad members with 500+ minutes played."
             )
-        st.divider()
     else:
         st.info(f"No percentile data available for {sel_player} (requires 500+ minutes played).")
-        st.divider()
+    st.divider()
 
 # ============================================================================
 # GOALS vs xG (FINISHING EFFICIENCY)
@@ -218,11 +217,54 @@ if not eff_df.empty and 'xg' in eff_df.columns:
     if len(eff_df) > 2:
         x_min = eff_df['xg'].min()
         x_max = eff_df['xg'].max()
-        if x_max > x_min:
-            coeffs = np.polyfit(eff_df['xg'], eff_df['goals'], 1)
-            eff_df['expected_goals'] = np.polyval(coeffs, eff_df['xg'])
-            eff_df['finishing_delta'] = eff_df['goals'] - eff_df['expected_goals']
+        if x_max > x_min and x_max > 0:  # Ensure we have variance and meaningful xG data
+            try:
+                coeffs = np.polyfit(eff_df['xg'], eff_df['goals'], 1)
+                eff_df['expected_goals'] = np.polyval(coeffs, eff_df['xg'])
+                eff_df['finishing_delta'] = eff_df['goals'] - eff_df['expected_goals']
 
+                clinical = eff_df.nlargest(5, 'finishing_delta')
+                wasteful = eff_df.nsmallest(5, 'finishing_delta')
+
+                ec1, ec2 = st.columns(2)
+                with ec1:
+                    st.markdown("#### 🎯 Most Clinical Finishers")
+                    for _, r in clinical.iterrows():
+                        st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {r['xg']:.1f} xG (+{r['finishing_delta']:.1f})")
+                with ec2:
+                    st.markdown("#### 😬 Underperforming xG")
+                    for _, r in wasteful.iterrows():
+                        st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {r['xg']:.1f} xG ({r['finishing_delta']:.1f})")
+
+                info_card("Finishing Efficiency Insight",
+                    "Players above the trend line are **outperforming their xG** — converting chances at a higher rate than expected. "
+                    "This can indicate elite finishing ability or a hot streak. Players below the line may be experiencing bad luck "
+                    "or struggling with composure. In tournament football, clinical finishing is often the difference in tight knockout matches.")
+            except Exception as e:
+                # Fallback to simple difference if OLS fails
+                eff_df['finishing_delta'] = eff_df['goals'] - eff_df['xg']
+                clinical = eff_df.nlargest(5, 'finishing_delta')
+                wasteful = eff_df.nsmallest(5, 'finishing_delta')
+
+                ec1, ec2 = st.columns(2)
+                with ec1:
+                    st.markdown("#### 🎯 Most Clinical Finishers")
+                    for _, r in clinical.iterrows():
+                        xg_display = f"{r['xg']:.1f}" if pd.notnull(r['xg']) and r['xg'] > 0 else "data unavailable"
+                        st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {xg_display} xG (+{r['finishing_delta']:.1f})")
+                with ec2:
+                    st.markdown("#### 😬 Underperforming xG")
+                    for _, r in wasteful.iterrows():
+                        xg_display = f"{r['xg']:.1f}" if pd.notnull(r['xg']) and r['xg'] > 0 else "data unavailable"
+                        st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {xg_display} xG ({r['finishing_delta']:.1f})")
+
+                info_card("Finishing Efficiency Insight",
+                    "Expected goals (xG) data is incomplete for some leagues, so we're showing the raw difference between goals and xG. "
+                    "Players with positive values outperformed their expected goals, while those with negative values underperformed. "
+                    "Note: xG data may be missing or unreliable for certain leagues.")
+        else:
+            # Handle case where xg is all zeros or no variance (common for leagues without xG data)
+            eff_df['finishing_delta'] = eff_df['goals'] - eff_df['xg']
             clinical = eff_df.nlargest(5, 'finishing_delta')
             wasteful = eff_df.nsmallest(5, 'finishing_delta')
 
@@ -230,18 +272,19 @@ if not eff_df.empty and 'xg' in eff_df.columns:
             with ec1:
                 st.markdown("#### 🎯 Most Clinical Finishers")
                 for _, r in clinical.iterrows():
-                    st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {r['xg']:.1f} xG (+{r['finishing_delta']:.1f})")
+                    xg_display = f"{r['xg']:.1f}" if pd.notnull(r['xg']) and r['xg'] > 0 else "data unavailable"
+                    st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {xg_display} xG (+{r['finishing_delta']:.1f})")
             with ec2:
                 st.markdown("#### 😬 Underperforming xG")
                 for _, r in wasteful.iterrows():
-                    st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {r['xg']:.1f} xG ({r['finishing_delta']:.1f})")
+                    xg_display = f"{r['xg']:.1f}" if pd.notnull(r['xg']) and r['xg'] > 0 else "data unavailable"
+                    st.markdown(f"- **{r['player_name']}** — {r['goals']:.0f} goals from {xg_display} xG ({r['finishing_delta']:.1f})")
 
-        info_card("Finishing Efficiency Insight",
-            "Players above the trend line are **outperforming their xG** — converting chances at a higher rate than expected. "
-            "This can indicate elite finishing ability or a hot streak. Players below the line may be experiencing bad luck "
-            "or struggling with composure. In tournament football, clinical finishing is often the difference in tight knockout matches."
-        )
-        st.divider()
+            info_card("Finishing Efficiency Insight",
+                "Expected goals (xG) data is not available for the selected filters/league, so we're showing goals minus xG. "
+                "When xG data is missing (shows as 0.0), this simplifies to just the goal total. "
+                "For leagues like the Eredivisie where xG isn't tracked in this dataset, consider this a raw goal count comparison.")
+    st.divider()
 
 # ============================================================================
 # TOP CONTRIBUTORS (GOALS + ASSISTS)
@@ -275,8 +318,7 @@ if not top_contrib.empty:
         f"**{top_player['player_name']}** ({top_player.get('nation_code', 'N/A')}) leads with "
         f"{top_player['goals']:.0f} goals and {top_player['assists']:.0f} assists "
         f"({top_player['goal_contribution']:.0f} total contributions). "
-        f"Their xG of {top_player['xg']:.1f} suggests {'clinical finishing above expected output' if top_player['goals'] > top_player['xg'] else 'output in line with chance quality'}."
-    )
+        f"Their xG of {top_player['xg']:.1f} suggests {'clinical finishing above expected output' if top_player['goals'] > top_player['xg'] else 'output in line with chance quality'}.")
     st.divider()
 
 # ============================================================================
@@ -302,8 +344,8 @@ if not per90_df.empty:
         title="Only players with 500+ minutes | Bubble size = total minutes"
     )
     avg_g90 = per90_df['goals_per90'].mean()
-    avg_xa90 = per90_df['xa_per90'].mean()
-    fig_90.add_vline(x=avg_xa90, line_dash="dash", line_color="#000000", opacity=0.4)
+    xa90_avg = per90_df['xa_per90'].mean()
+    fig_90.add_vline(x=xa90_avg, line_dash="dash", line_color="#000000", opacity=0.4)
     fig_90.add_hline(y=avg_g90, line_dash="dash", line_color="#000000", opacity=0.4)
     fig_90.update_layout(
         paper_bgcolor='#ffffff',
@@ -440,39 +482,3 @@ if 'age' in filtered.columns and (filtered['age'] > 0).any():
         st.metric("Youngest", f"{youngest['player_name']}", f"{youngest['age']:.0f} yrs")
     with ac3:
         st.metric("Oldest", f"{oldest['player_name']}", f"{oldest['age']:.0f} yrs")
-
-    info_card("Age Profile Insight",
-        f"The average age of World Cup squad players is **{avg_age:.1f} years**. "
-        f"Research suggests the optimal 'peak performance window' for footballers is 26–29. "
-        f"Teams with squads concentrated in this window often have the ideal balance of physical prime and tournament experience."
-    )
-    st.divider()
-
-# ============================================================================
-# FULL DATA TABLE
-# ============================================================================
-st.subheader("📋 Complete Player Database")
-
-table_cols = ['player_name', 'nation_code', 'position', 'club_team', 'age',
-              'goals', 'assists', 'xg', 'xa', 'minutes', 'matches_played']
-avail_cols = [c for c in table_cols if c in filtered.columns]
-
-st.dataframe(
-    filtered[avail_cols].sort_values('goals', ascending=False),
-    column_config={
-        "player_name": st.column_config.TextColumn("Player"),
-        "nation_code": st.column_config.TextColumn("Nation"),
-        "position": st.column_config.TextColumn("Pos"),
-        "club_team": st.column_config.TextColumn("Club"),
-        "age": st.column_config.NumberColumn("Age", format="%.0f"),
-        "goals": st.column_config.ProgressColumn("Goals", min_value=0, max_value=max(filtered['goals'].max(), 1), format="%d"),
-        "assists": st.column_config.ProgressColumn("Assists", min_value=0, max_value=max(filtered['assists'].max(), 1), format="%d"),
-        "xg": st.column_config.NumberColumn("xG", format="%.1f"),
-        "xa": st.column_config.NumberColumn("xA", format="%.1f"),
-        "minutes": st.column_config.NumberColumn("Min", format="%d"),
-        "matches_played": st.column_config.NumberColumn("Apps", format="%d"),
-    },
-    hide_index=True,
-    width='stretch',
-    height=500
-)
