@@ -31,15 +31,31 @@ class DataSourceStatus:
     last_refresh: Optional[datetime] = None
 
 def _get_bigquery_client() -> Optional[bigquery.Client]:
-    """Initialize BigQuery client from environment credentials."""
-    creds_b64 = os.getenv("GCP_SERVICE_ACCOUNT_KEY")
+    """Initialize BigQuery client from Streamlit secrets or environment credentials."""
+    import streamlit as st
+    
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    creds_b64 = None
+    try:
+        if 'credentials' in st.secrets:
+            creds_b64 = st.secrets['credentials'].get('GCP_SERVICE_ACCOUNT_KEY')
+    except Exception:
+        pass
+    
+    # Fallback to environment variable (for local development)
     if not creds_b64:
+        creds_b64 = os.getenv("GCP_SERVICE_ACCOUNT_KEY")
+    
+    if not creds_b64:
+        st.error("⚠️ GCP_SERVICE_ACCOUNT_KEY not found in secrets or environment")
         return None
+    
     try:
         creds_json = json.loads(base64.b64decode(creds_b64).decode())
         credentials = service_account.Credentials.from_service_account_info(creds_json)
         return bigquery.Client(project=GCP_PROJECT_ID, credentials=credentials)
-    except Exception:
+    except Exception as e:
+        st.error(f"⚠️ BigQuery auth error: {str(e)[:100]}")
         return None
 
 def _execute_readonly_query(query: str, cache_key: Optional[str] = None) -> pd.DataFrame:
