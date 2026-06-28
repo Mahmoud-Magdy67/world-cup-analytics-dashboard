@@ -171,14 +171,17 @@ def load_custom_css():
 # PAGE COMPONENTS
 # ============================================================================
 
-def page_header(title: str, description: str, icon: str = "⚽"):
-    """Create a professional page header with icon and description."""
+def page_header(title: str, description: str, icon: str = "⚽", image_url: str = None):
+    """Create a professional page header with icon/image and description."""
     col1, col2 = st.columns([1, 10])
     with col1:
-        st.markdown(f"<div style='font-size: 2.5rem'>{icon}</div>", unsafe_allow_html=True)
+        if image_url:
+            st.markdown(f"<img src='{image_url}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size: 3.5rem; text-align: center;'>{icon}</div>", unsafe_allow_html=True)
     with col2:
         st.title(title)
-        st.caption(description)
+        st.markdown(f"<p style='color: #e5e7eb; font-size: 1.1rem; margin-top: -1rem;'>{description}</p>", unsafe_allow_html=True)
     st.divider()
 
 def kpi_cards(items: List[Tuple[str, Any, Optional[str]]], cols: Optional[int] = None):
