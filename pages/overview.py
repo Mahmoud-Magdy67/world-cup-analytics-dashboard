@@ -1,3 +1,3 @@
 from pages._shared import *
 page_header('Tournament Overview','High-level tournament health, scoring trends, and leading contenders.')
-df=get_teams(); kpi_cards([("Teams tracked",len(df),""),("Goals scored",int(df.goals_for.sum()),""),("Top contender",df.iloc[0].team,f"{df.iloc[0].win_probability:.0%}")]); st.plotly_chart(px.bar(df,x="team",y="rating",color="confederation",title="Team power ratings"),use_container_width=True)
+df=get_teams(); kpi_cards([("Teams tracked",len(df),""),("Top contender",df.iloc[0].team_name,f"{df.iloc[0].championship_probability:.1%}"),("Highest rated",df.loc[df.elo_rating.idxmax()].team_name,f"{int(df.elo_rating.max())} elo")]); st.plotly_chart(px.bar(df.head(12),x="team_name",y="championship_probability",color="contender_tier",title="Championship probability by team"),use_container_width=True); st.dataframe(df[["team_name","group_name","winner_rank","championship_probability","elo_rating","contender_tier"]],use_container_width=True)
