@@ -14,91 +14,100 @@ import numpy as np
 # ============================================================================
 
 def load_custom_css():
-    """Inject custom CSS for professional dark theme."""
+    """Inject custom CSS for professional World Cup 2026 dark theme."""
     st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Bebas+Neue&display=swap');
+    
     /* Global Styles */
     .stApp {
-        background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+        background: linear-gradient(135deg, #10061e 0%, #1f0b3b 50%, #10061e 100%);
     }
     
     /* Headers */
     h1, h2, h3, h4, h5, h6 {
         color: #ffffff !important;
-        font-family: 'Segoe UI', system-ui, sans-serif !important;
-        font-weight: 600 !important;
+        font-family: 'Bebas Neue', 'Montserrat', sans-serif !important;
+        letter-spacing: 0.05em !important;
     }
     
-    h1 { font-size: 2.5rem !important; margin-bottom: 0.5rem !important; }
-    h2 { font-size: 2rem !important; }
-    h3 { font-size: 1.5rem !important; }
+    h1 { font-size: 3rem !important; margin-bottom: 0.5rem !important; color: #ffffff !important; }
+    h2 { font-size: 2.2rem !important; color: #00ff85 !important; }
+    h3 { font-size: 1.8rem !important; color: #ff0055 !important; }
     
     /* Text */
     p, span, div {
-        font-family: 'Segoe UI', system-ui, sans-serif !important;
+        font-family: 'Montserrat', sans-serif !important;
     }
     
     /* Metric Cards */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1e2a3a 0%, #2d3748 100%);
+        background: linear-gradient(135deg, #2b1154 0%, #160a2c 100%);
         border-radius: 12px;
         padding: 1.5rem;
-        border: 1px solid #374151;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border: 1px solid #4a1e82;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
     
     [data-testid="stMetricValue"] {
-        color: #60a5fa !important;
+        color: #00ff85 !important;
         font-size: 2.5rem !important;
-        font-weight: 700 !important;
-    }
-    
-    [data-testid="stMetricLabel"] {
-        color: #9ca3af !important;
-        font-size: 0.875rem !important;
-        text-transform: uppercase !important;
+        font-weight: 800 !important;
+        font-family: 'Bebas Neue', sans-serif !important;
         letter-spacing: 0.05em !important;
     }
     
+    [data-testid="stMetricLabel"] {
+        color: #d1d5db !important;
+        font-size: 0.9rem !important;
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.1em !important;
+    }
+    
     [data-testid="stMetricDelta"] {
-        color: #34d399 !important;
-        font-size: 0.875rem !important;
+        color: #ff0055 !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
     }
     
     /* Sidebar */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
-        border-right: 1px solid #374151;
+        background: linear-gradient(180deg, #0b0514 0%, #1a0b33 100%);
+        border-right: 2px solid #4a1e82;
     }
     
     /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #9d00ff 0%, #ff0055 100%);
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 30px;
         padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.2s ease;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.3s ease;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #ff0055 0%, #9d00ff 100%);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 4px 15px rgba(255, 0, 85, 0.5);
     }
     
     /* Dataframes */
     [data-testid="stDataFrame"] {
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #374151;
+        border: 1px solid #4a1e82;
+        background: #160a2c !important;
     }
     
     /* Select boxes */
     [data-testid="stSelectbox"] > div {
-        background: #1f2937;
-        border: 1px solid #374151;
+        background: #160a2c;
+        border: 1px solid #4a1e82;
         border-radius: 8px;
     }
     
@@ -115,20 +124,23 @@ def load_custom_css():
     
     /* Custom card */
     .info-card {
-        background: linear-gradient(135deg, #1e2a3a 0%, #2d3748 100%);
+        background: linear-gradient(135deg, rgba(157, 0, 255, 0.1) 0%, rgba(255, 0, 85, 0.05) 100%);
         border-radius: 12px;
         padding: 1.5rem;
         margin: 1rem 0;
-        border: 1px solid #374151;
+        border: 1px solid #9d00ff;
+        border-left: 5px solid #00ff85;
     }
     
     .info-card h4 {
-        color: #60a5fa !important;
+        color: #00ff85 !important;
         margin-top: 0 !important;
+        font-family: 'Bebas Neue', sans-serif !important;
+        letter-spacing: 0.05em !important;
     }
     
     .info-card p {
-        color: #9ca3af !important;
+        color: #e5e7eb !important;
         line-height: 1.6 !important;
     }
     
@@ -138,18 +150,19 @@ def load_custom_css():
         padding: 0.25rem 0.75rem;
         border-radius: 9999px;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         margin: 0.25rem;
+        text-transform: uppercase;
     }
     
-    .prob-high { background: #dc2626; color: white; }
-    .prob-medium { background: #f59e0b; color: white; }
-    .prob-low { background: #10b981; color: white; }
+    .prob-high { background: #ff0055; color: white; }
+    .prob-medium { background: #9d00ff; color: white; }
+    .prob-low { background: #00ff85; color: #0b0514; }
     
     /* Team tier badges */
-    .tier-favorite { background: #7c3aed; color: white; }
-    .tier-contender { background: #3b82f6; color: white; }
-    .tier-dark-horse { background: #10b981; color: white; }
+    .tier-favorite { background: #ff0055; color: white; }
+    .tier-contender { background: #9d00ff; color: white; }
+    .tier-dark-horse { background: #00ff85; color: #0b0514; }
     .tier-underdog { background: #6b7280; color: white; }
     </style>
     """, unsafe_allow_html=True)

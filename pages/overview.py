@@ -18,7 +18,7 @@ load_custom_css()
 page_header(
     "Executive Overview",
     "Tournament intelligence, championship projections, and cross-dimensional analytics",
-    icon="📊"
+    image_url="https://upload.wikimedia.org/wikipedia/en/thumb/7/7b/2026_FIFA_World_Cup_Logo.svg/512px-2026_FIFA_World_Cup_Logo.svg.png"
 )
 
 # ============================================================================
@@ -102,10 +102,10 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
         color='championship_probability_pct',
         color_continuous_scale='Viridis',
         hover_data=['championship_probability_pct', 'elo_rating', 'total_market_value_eur'],
-        title="Hierarchical View: Box Size = ELO Rating, Color = Championship Probability",
+        title="World Cup Power Hierarchy (Box Size = Team Strength, Color = Tournament Win Probability)",
         labels={
             'championship_probability_pct': 'Win Probability (%)',
-            'elo_rating': 'ELO Rating',
+            'elo_rating': 'Overall Team Strength (ELO)',
             'total_market_value_eur': 'Squad Value (€)',
             'confederation': 'Confederation',
             'group_name': 'Group',
@@ -206,7 +206,7 @@ if heat_cols and 'team_name' in filtered_preds.columns:
         aspect="auto", 
         color_continuous_scale="Blues",
         labels=dict(x="Tournament Stage", y="Team", color="Probability (%)"),
-        title="Stage-by-Stage Progression Probabilities (Top 15 Filtered Teams)"
+        title="Projected Tournament Survival Rates (Top 15 Teams)"
     )
     fig_heat.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
@@ -242,11 +242,11 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
         size='elo_rating',
         color='Color_Group' if highlight_team != "None" else 'confederation',
         color_discrete_map={'Highlighted': '#00ff00', 'Standard': '#888888'} if highlight_team != "None" else None,
-        title="Bubble Size = ELO Rating",
+        title="Bubble Size = Overall Team Strength (ELO)",
         labels={
             'market_value_b': 'Market Value (€ Billions)', 
             'championship_probability_pct': 'Win Probability (%)',
-            'elo_rating': 'ELO Rating',
+            'elo_rating': 'Overall Team Strength (ELO)',
             'Color_Group': 'Highlight Status',
             'confederation': 'Confederation'
         }
