@@ -75,14 +75,30 @@ top_team_prob = filtered_preds.iloc[0].get('championship_probability_pct', 0.0)
 
 # Build custom metrics row
 col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+
+# Format simulations
+if sim_runs >= 1_000_000:
+    sim_runs_str = f"{sim_runs / 1_000_000:g}M"
+elif sim_runs >= 1_000:
+    sim_runs_str = f"{sim_runs / 1_000:g}K"
+else:
+    sim_runs_str = str(sim_runs)
+
+# Calculate Tournament Value
+if 'total_market_value_eur' in filtered_preds.columns:
+    total_val = filtered_preds['total_market_value_eur'].sum()
+    val_str = f"€{total_val / 1e9:.1f}B" if total_val > 0 else "N/A"
+else:
+    val_str = "N/A"
+
 with col_k1:
     st.metric(label="Teams Tracked", value=len(filtered_preds))
 with col_k2:
-    st.metric(label="Simulations Executed", value=f"{sim_runs:,.0f}")
+    st.metric(label="Simulations Executed", value=sim_runs_str)
 with col_k3:
     st.metric(label="Current Favorite", value=top_team_name, delta=f"{top_team_prob:.1f}% Win Prob", delta_color="normal")
 with col_k4:
-    st.metric(label="Projection Model", value=str(model_meth).split(':')[0])
+    st.metric(label="Total Squad Value", value=val_str)
 
 st.write("") # Spacing
 
