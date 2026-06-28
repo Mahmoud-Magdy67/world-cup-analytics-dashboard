@@ -132,9 +132,17 @@ def get_teams() -> pd.DataFrame:
     ORDER BY winner_rank
     """
     try:
-        return _execute_readonly_query(query)
+        result = _execute_readonly_query(query)
+        # Log success to Streamlit
+        import streamlit as st
+        st.cache_data.clear()  # Clear cache to ensure fresh data
+        return result
     except Exception as e:
-        print(f"BigQuery error in get_teams(): {e}")
+        import streamlit as st
+        error_msg = f"BigQuery error in get_teams(): {str(e)[:200]}"
+        st.error(f"⚠️ BigQuery query failed: {str(e)[:100]}")
+        st.warning(f"Using mock data (6 teams) instead of 48 teams")
+        print(error_msg)
         return _get_mock_teams()
 
 def get_players() -> pd.DataFrame:
@@ -167,9 +175,16 @@ def get_players() -> pd.DataFrame:
     LIMIT 500
     """
     try:
-        return _execute_readonly_query(query)
+        result = _execute_readonly_query(query)
+        import streamlit as st
+        st.cache_data.clear()
+        return result
     except Exception as e:
-        print(f"BigQuery error in get_players(): {e}")
+        import streamlit as st
+        error_msg = f"BigQuery error in get_players(): {str(e)[:200]}"
+        st.error(f"⚠️ BigQuery query failed: {str(e)[:100]}")
+        st.warning(f"Using mock data (6 players) instead of 500 players")
+        print(error_msg)
         return _get_mock_players()
 
 def get_matches() -> pd.DataFrame:
