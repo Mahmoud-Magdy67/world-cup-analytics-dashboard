@@ -18,7 +18,7 @@ load_custom_css()
 page_header(
     "Executive Overview",
     "Tournament intelligence, championship projections, and cross-dimensional analytics",
-    image_url="https://digitalhub.fifa.com/transform/549c4dce-df67-4277-a8a0-2f924fb3ba64/FIFA-World-Cup-26-Brand-Launch?io=transform:fill,width:800,height:800"
+    image_url="https://upload.wikimedia.org/wikipedia/en/thumb/7/7b/2026_FIFA_World_Cup_Logo.svg/512px-2026_FIFA_World_Cup_Logo.svg.png"
 )
 
 # ============================================================================
@@ -73,8 +73,28 @@ model_meth = filtered_preds.iloc[0].get('model_method', 'Monte Carlo') if 'model
 top_team_name = filtered_preds.iloc[0].get('team_name', 'N/A')
 top_team_prob = filtered_preds.iloc[0].get('championship_probability_pct', 0.0)
 
-# Build custom metrics row
-col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+# Calculate dynamic KPIs based on Highlight Team
+if highlight_team != "None":
+    team_row = filtered_preds[filtered_preds['team_name'] == highlight_team].iloc[0]
+    tracked_count = 1
+    fav_label = "Selected Team"
+    top_team_name = highlight_team
+    top_team_prob = team_row.get('championship_probability_pct', 0.0)
+    team_val = team_row.get('total_market_value_eur', 0)
+    val_str = f"€{team_val / 1e9:.2f}B" if team_val > 0 else "N/A"
+    val_label = "Squad Value"
+else:
+    tracked_count = len(filtered_preds)
+    fav_label = "Current Favorite"
+    top_team_name = filtered_preds.iloc[0].get('team_name', 'N/A')
+    top_team_prob = filtered_preds.iloc[0].get('championship_probability_pct', 0.0)
+    
+    if 'total_market_value_eur' in filtered_preds.columns:
+        total_val = filtered_preds['total_market_value_eur'].sum()
+        val_str = f"€{total_val / 1e9:.1f}B" if total_val > 0 else "N/A"
+    else:
+        val_str = "N/A"
+    val_label = "Total Squad Value"
 
 # Format simulations
 if sim_runs >= 1_000_000:
@@ -84,21 +104,16 @@ elif sim_runs >= 1_000:
 else:
     sim_runs_str = str(sim_runs)
 
-# Calculate Tournament Value
-if 'total_market_value_eur' in filtered_preds.columns:
-    total_val = filtered_preds['total_market_value_eur'].sum()
-    val_str = f"€{total_val / 1e9:.1f}B" if total_val > 0 else "N/A"
-else:
-    val_str = "N/A"
-
+# Build custom metrics row
+col_k1, col_k2, col_k3, col_k4 = st.columns(4)
 with col_k1:
-    st.metric(label="Teams Tracked", value=len(filtered_preds))
+    st.metric(label="Teams Tracked", value=tracked_count)
 with col_k2:
     st.metric(label="Simulations Executed", value=sim_runs_str)
 with col_k3:
-    st.metric(label="Current Favorite", value=top_team_name, delta=f"{top_team_prob:.1f}% Win Prob", delta_color="normal")
+    st.metric(label=fav_label, value=top_team_name, delta=f"{top_team_prob:.1f}% Win Prob", delta_color="normal")
 with col_k4:
-    st.metric(label="Total Squad Value", value=val_str)
+    st.metric(label=val_label, value=val_str)
 
 st.write("") # Spacing
 
@@ -131,7 +146,7 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
     fig_tree.update_layout(
         margin=dict(t=30, l=10, r=10, b=10),
         paper_bgcolor='#ffffff',
-        font=dict(color='#000000', size=14, family='Noto Sans')
+        font=dict(color='#000000', size=14, family='Bebas Neue')
     )
     st.plotly_chart(fig_tree, width='stretch')
     
@@ -227,7 +242,7 @@ if heat_cols and 'team_name' in filtered_preds.columns:
     fig_heat.update_layout(
         paper_bgcolor='#ffffff',
         plot_bgcolor='#ffffff',
-        font=dict(color='#000000', family='Noto Sans')
+        font=dict(color='#000000', family='Bebas Neue')
     )
     st.plotly_chart(fig_heat, width='stretch')
     info_card("AI Insight", "The progression heatmap illustrates the 'attrition rate' of top teams. Sharp drop-offs between the Quarter-Finals and Semi-Finals indicate structural bottlenecks where tournament favorites are projected to eliminate each other.")
@@ -282,7 +297,7 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
     fig_scatter.update_layout(
         paper_bgcolor='#ffffff',
         plot_bgcolor='#ffffff',
-        font=dict(color='#000000', family='Noto Sans')
+        font=dict(color='#000000', family='Bebas Neue')
     )
     st.plotly_chart(fig_scatter, width='stretch')
     
@@ -291,41 +306,25 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
 st.divider()
 
 # ============================================================================
-# WHY THIS TEAM IS THE FAVORITE
+# TOURNAMENT CONTEXT & HOSTING IMPACT
 # ============================================================================
-if not filtered_preds.empty:
-    fav = filtered_preds.iloc[0]
-    st.subheader(f"🔍 Spotlight: Why {fav.get('team_name', 'the top team')} leads the projections")
+st.subheader("🏟️ Tournament Context & Hosting Impact")
+
+ctx_c1, ctx_c2 = st.columns(2)
+with ctx_c1:
+    st.markdown('''
+    ### THE LARGEST WORLD CUP IN HISTORY
+    THE 2026 EDITION EXPANDS TO 48 TEAMS AND 104 MATCHES, FUNDAMENTALLY ALTERING THE PATH TO THE FINAL. 
+    A NEW ROUND OF 32 INTRODUCES AN EXTRA KNOCKOUT HURDLE, INCREASING VARIANCE AND REDUCING THE PREDICTABILITY OF THE CHAMPION. 
+    TEAMS MUST NOW SURVIVE 8 MATCHES TO LIFT THE TROPHY INSTEAD OF 7.
+    ''')
     
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"**Dominant ELO:** `{fav.get('elo_rating', 0):.0f}`")
-        st.caption("Reflects sustained international performance and tactical stability.")
-    with c2:
-        st.markdown(f"**Group Avg Points:** `{fav.get('avg_group_points', 0):.2f}`")
-        st.caption("Expected points in the group stage, showing early tournament control.")
-    with c3:
-        st.markdown(f"**Final App Prob:** `{fav.get('final_probability_pct', 0):.1f}%`")
-        st.caption("Probability of surviving the entire knockout bracket.")
+with ctx_c2:
+    st.markdown('''
+    ### TRAVEL AND ALTITUDE DYNAMICS
+    HOSTED ACROSS 16 CITIES IN THE USA, MEXICO, AND CANADA, GEOGRAPHIC STRATEGY IS CRITICAL. 
+    TEAMS PLAYING IN MEXICO CITY (7,350 FT ELEVATION) FACE SEVERE PHYSIOLOGICAL DEMANDS. 
+    OUR PREDICTION MODELS FACTOR IN "HOST CONTINENT ADVANTAGE" FOR CONCACAF TEAMS, WHILE TRAVEL FATIGUE PENALIZES SQUADS DRAWN INTO CROSS-COUNTRY GROUP ASSIGNMENTS.
+    ''')
 
 st.divider()
-
-# ============================================================================
-# EXECUTIVE FOOTER & METADATA
-# ============================================================================
-status = get_data_source_status()
-st.markdown("### ⚙️ System & Model Metadata")
-meta_c1, meta_c2, meta_c3, meta_c4 = st.columns(4)
-
-with meta_c1:
-    st.caption("**Data Source**")
-    st.write(f"BigQuery Live Data" if status.bigquery_enabled else "Mock Fallback Data")
-with meta_c2:
-    st.caption("**Pipeline Freshness**")
-    st.write(status.last_refresh)
-with meta_c3:
-    st.caption("**Simulations Executed**")
-    st.write(f"{sim_runs:,.0f} iterations")
-with meta_c4:
-    st.caption("**Tables Available**")
-    st.write(f"{status.tables_available} Active Views")
