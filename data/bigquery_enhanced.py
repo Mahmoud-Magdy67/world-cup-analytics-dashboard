@@ -61,8 +61,8 @@ def _get_bigquery_client() -> Optional[bigquery.Client]:
 def _execute_readonly_query(query: str, cache_key: Optional[str] = None) -> pd.DataFrame:
     """Execute a read-only SELECT query with caching."""
     query_upper = query.strip().upper()
-    if not query_upper.startswith("SELECT"):
-        raise ValueError(f"Only SELECT queries allowed. Blocked: {query[:50]}")
+    if not (query_upper.startswith("SELECT") or query_upper.startswith("WITH")):
+        raise ValueError(f"Only SELECT or WITH (CTE) queries allowed. Blocked: {query[:50]}")
     
     client = _get_bigquery_client()
     if not client:
