@@ -203,9 +203,32 @@ def get_players(limit: int = 500) -> pd.DataFrame:
     """
     Fetch player data from v_real_player_rows_enriched_v8.
     
-    Returns top players by goals/assists with comprehensive stats.
+    Returns top players by goals/assists — ONLY for the 48 World Cup 2026 nations
+    and ONLY the most recent season (2024-2025). Deduplicates players who appear
+    multiple times for different clubs in the same season (transfers) by keeping
+    the row with the most minutes played.
     """
     query = f"""
+    WITH wc_nations AS (
+      SELECT DISTINCT fifa_code
+      FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`
+    ),
+    filtered AS (
+      SELECT
+          player_name, nation_code, position, club_team, league, season,
+          age, matches_played, starts, minutes, nineties_played,
+          goals, assists, goals_assists, xg, xa, npxg,
+          shots, shots_on_target,
+          tackles, tackles_won, interceptions, blocks, clearances, tackles_interceptions,
+          gk_minutes, gk_goals_against, gk_save_pct, gk_clean_sheets,
+          ROW_NUMBER() OVER (
+              PARTITION BY player_name
+              ORDER BY minutes DESC, goals DESC, assists DESC
+          ) as dedup_rank
+      FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
+      WHERE season = '2024-2025'
+        AND nation_code IN (SELECT fifa_code FROM wc_nations)
+    )
     SELECT 
         player_name, nation_code, position, club_team, league, season,
         age, matches_played, starts, minutes, nineties_played,
@@ -213,7 +236,8 @@ def get_players(limit: int = 500) -> pd.DataFrame:
         shots, shots_on_target,
         tackles, tackles_won, interceptions, blocks, clearances, tackles_interceptions,
         gk_minutes, gk_goals_against, gk_save_pct, gk_clean_sheets
-    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
+    FROM filtered
+    WHERE dedup_rank = 1
     ORDER BY goals DESC, assists DESC, xg DESC
     LIMIT {limit}
     """
@@ -227,8 +251,30 @@ def get_players(limit: int = 500) -> pd.DataFrame:
 def get_player_percentiles() -> pd.DataFrame:
     """
     Get player performance percentiles for radar charts.
+    
+    Only includes 2024-2025 season data for the 48 World Cup 2026 nations.
+    Deduplicates transfer players by keeping the row with the most minutes.
     """
     query = f"""
+    WITH wc_nations AS (
+      SELECT DISTINCT fifa_code
+      FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`
+    ),
+    filtered AS (
+      SELECT
+          player_name, nation_code, position,
+          goals, assists, xg, xa,
+          tackles, interceptions, tackles_interceptions,
+          gk_save_pct, minutes,
+          ROW_NUMBER() OVER (
+              PARTITION BY player_name
+              ORDER BY minutes DESC, goals DESC, assists DESC
+          ) as dedup_rank
+      FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
+      WHERE season = '2024-2025'
+        AND nation_code IN (SELECT fifa_code FROM wc_nations)
+        AND minutes >= 500
+    )
     SELECT 
         player_name, nation_code, position,
         goals, assists, xg, xa,
@@ -239,8 +285,8 @@ def get_player_percentiles() -> pd.DataFrame:
         PERCENT_RANK() OVER (ORDER BY xg) as xg_pct,
         PERCENT_RANK() OVER (ORDER BY tackles) as tackles_pct,
         PERCENT_RANK() OVER (ORDER BY interceptions) as interceptions_pct
-    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
-    WHERE minutes >= 500
+    FROM filtered
+    WHERE dedup_rank = 1
     """
     try:
         return _execute_readonly_query(query)
