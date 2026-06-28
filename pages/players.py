@@ -40,7 +40,7 @@ fig = px.bar(
 )
 fig.update_layout(height=500, xaxis_tickangle=-45)
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 # Full Data Table
 st.subheader("All Player Statistics")
@@ -73,7 +73,7 @@ if 'matches_played' in display_df.columns:
     display_df['matches_played'] = display_df['matches_played'].fillna(0).astype(int)
 
 # Display table
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, width='stretch', hide_index=True)
 
 # Additional insights
 st.subheader("Player Insights")
@@ -109,4 +109,4 @@ if 'position' in df.columns:
     for i, pos in enumerate(positions[:5]):
         with tabs[i]:
             pos_df = df[df['position'] == pos].head(10)
-            st.dataframe(pos_df[['player_name', 'nation_code', 'club_team', 'goals', 'assists', 'xg', 'xa']], use_container_width=True, hide_index=True)
+            st.dataframe(pos_df[['player_name', 'nation_code', 'club_team', 'goals', 'assists', 'xg', 'xa']], width='stretch', hide_index=True)

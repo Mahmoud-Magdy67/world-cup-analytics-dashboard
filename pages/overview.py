@@ -95,7 +95,7 @@ with col1:
         display_df.style.format({
             'Win %': '{:.2f}%'
         }),
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
         height=500
     )
@@ -128,7 +128,7 @@ with col2:
         margin=dict(l=20, r=20, t=40, b=20)
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 st.divider()
 
@@ -161,7 +161,7 @@ with col1:
             margin=dict(l=20, r=20, t=40, b=20)
         )
         
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, width='stretch')
     else:
         st.info("⚠️ Confederation data not available for visualization")
 
@@ -194,7 +194,7 @@ with col2:
                 margin=dict(l=20, r=20, t=40, b=20)
             )
             
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width='stretch')
         else:
             st.info("⚠️ ELO rating data not available")
     else:
@@ -222,7 +222,7 @@ with col3:
             margin=dict(l=20, r=20, t=40, b=20)
         )
         
-        st.plotly_chart(fig_donut, use_container_width=True)
+        st.plotly_chart(fig_donut, width='stretch')
     else:
         st.info("⚠️ Confederation data not available")
 
@@ -259,7 +259,7 @@ for tab, group in zip(tabs, groups):
             'round32_probability_pct': '{:.1f}%'
         })
         
-        st.dataframe(styled, use_container_width=True, hide_index=True, height=300)
+        st.dataframe(styled, width='stretch', hide_index=True, height=300)
 
 st.divider()
 
@@ -298,7 +298,7 @@ with col1:
         title=f"{top_team} - Stage Probabilities"
     )
     
-    st.plotly_chart(fig_funnel, use_container_width=True)
+    st.plotly_chart(fig_funnel, width='stretch')
 
 with col2:
     # Funnel for second team
@@ -327,7 +327,7 @@ with col2:
         title=f"{second_team} - Stage Probabilities"
     )
     
-    st.plotly_chart(fig_funnel2, use_container_width=True)
+    st.plotly_chart(fig_funnel2, width='stretch')
 
 st.divider()
 
@@ -355,7 +355,7 @@ fig_scatter = create_scatter_with_trend(
     trendline="ols"
 )
 
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(fig_scatter, width='stretch')
 
 info_card(
     "Key Insight",

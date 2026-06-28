@@ -5,7 +5,7 @@ status=get_data_source_status(); kpi_cards([("Data mode",status.mode,""),("BigQu
 if status.tables_available:
     st.write("### Available Tables")
     table_df=pd.DataFrame([{"Table":k,"Rows":v} for k,v in status.tables_available.items()])
-    st.dataframe(table_df,use_container_width=True)
+    st.dataframe(table_df,width='stretch')
 else:
     st.write("Table metadata unavailable in current mode")
 st.write("**Source Tables:**")

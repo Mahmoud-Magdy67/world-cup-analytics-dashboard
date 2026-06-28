@@ -69,7 +69,7 @@ fig.update_layout(
     margin=dict(l=20, r=20, t=40, b=20)
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 st.divider()
 
@@ -103,7 +103,7 @@ fig_heatmap.update_layout(
     margin=dict(l=150, r=20, t=60, b=20)
 )
 
-st.plotly_chart(fig_heatmap, use_container_width=True)
+st.plotly_chart(fig_heatmap, width='stretch')
 
 info_card(
     "How to Read This Heatmap",
@@ -159,7 +159,7 @@ if selected_teams:
             height=500
         )
         
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width='stretch')
     
     with col2:
         st.markdown("#### Key Metrics")
@@ -170,7 +170,7 @@ if selected_teams:
         display_df['Value (€)'] = (display_df['Value (€)'] / 1e9).round(2)
         
         st.dataframe(display_df.style.background_gradient(cmap='Blues'), 
-                    use_container_width=True, hide_index=True)
+                    width='stretch', hide_index=True)
 
 st.divider()
 
