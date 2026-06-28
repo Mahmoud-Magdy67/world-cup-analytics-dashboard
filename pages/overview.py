@@ -274,7 +274,20 @@ with col1:
     # Funnel for top team
     top_team = teams.iloc[0]['team_name']
     team_funnel = stage_probs[stage_probs['team_name'] == top_team].copy()
-    team_funnel = team_funnel.sort_values('stage_order')
+    
+    # Safe stage_order mapping to support dynamic databases
+    if 'stage_order' not in team_funnel.columns and 'stage' in team_funnel.columns:
+        stage_order_map = {
+            'group stage': 1, 'group_stage': 1, 'group': 1, 'round of 32': 2, 'round32': 2, 'round_of_32': 2,
+            'round of 16': 3, 'round16': 3, 'round_of_16': 3, 'quarter finals': 4, 'quarterfinals': 4, 'quarter_finals': 4,
+            'semi finals': 5, 'semifinals': 5, 'semi_finals': 5, 'final': 6, 'finals': 6, 'finalist': 6,
+            'champion': 7, 'champions': 7, 'winner': 7
+        }
+        team_funnel['stage_clean'] = team_funnel['stage'].astype(str).str.lower().str.strip()
+        team_funnel['stage_order'] = team_funnel['stage_clean'].map(stage_order_map).fillna(99)
+        
+    if 'stage_order' in team_funnel.columns:
+        team_funnel = team_funnel.sort_values('stage_order')
     
     stages = team_funnel['stage'].tolist()
     probs = team_funnel['probability_pct'].tolist()
@@ -290,7 +303,20 @@ with col2:
     # Funnel for second team
     second_team = teams.iloc[1]['team_name']
     team_funnel2 = stage_probs[stage_probs['team_name'] == second_team].copy()
-    team_funnel2 = team_funnel2.sort_values('stage_order')
+    
+    # Safe stage_order mapping to support dynamic databases
+    if 'stage_order' not in team_funnel2.columns and 'stage' in team_funnel2.columns:
+        stage_order_map = {
+            'group stage': 1, 'group_stage': 1, 'group': 1, 'round of 32': 2, 'round32': 2, 'round_of_32': 2,
+            'round of 16': 3, 'round16': 3, 'round_of_16': 3, 'quarter finals': 4, 'quarterfinals': 4, 'quarter_finals': 4,
+            'semi finals': 5, 'semifinals': 5, 'semi_finals': 5, 'final': 6, 'finals': 6, 'finalist': 6,
+            'champion': 7, 'champions': 7, 'winner': 7
+        }
+        team_funnel2['stage_clean'] = team_funnel2['stage'].astype(str).str.lower().str.strip()
+        team_funnel2['stage_order'] = team_funnel2['stage_clean'].map(stage_order_map).fillna(99)
+        
+    if 'stage_order' in team_funnel2.columns:
+        team_funnel2 = team_funnel2.sort_values('stage_order')
     
     stages2 = team_funnel2['stage'].tolist()
     probs2 = team_funnel2['probability_pct'].tolist()
