@@ -102,7 +102,15 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
         color='championship_probability_pct',
         color_continuous_scale='Viridis',
         hover_data=['championship_probability_pct', 'elo_rating', 'total_market_value_eur'],
-        title="Hierarchical View: Box Size = ELO Rating, Color = Championship Probability"
+        title="Hierarchical View: Box Size = ELO Rating, Color = Championship Probability",
+        labels={
+            'championship_probability_pct': 'Win Probability (%)',
+            'elo_rating': 'ELO Rating',
+            'total_market_value_eur': 'Squad Value (€)',
+            'confederation': 'Confederation',
+            'group_name': 'Group',
+            'team_name': 'Team'
+        }
     )
     fig_tree.update_layout(
         margin=dict(t=30, l=10, r=10, b=10),
@@ -235,7 +243,13 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
         color='Color_Group' if highlight_team != "None" else 'confederation',
         color_discrete_map={'Highlighted': '#00ff00', 'Standard': '#888888'} if highlight_team != "None" else None,
         title="Bubble Size = ELO Rating",
-        labels={'market_value_b': 'Market Value (€ Billions)', 'championship_probability_pct': 'Championship Probability (%)'}
+        labels={
+            'market_value_b': 'Market Value (€ Billions)', 
+            'championship_probability_pct': 'Win Probability (%)',
+            'elo_rating': 'ELO Rating',
+            'Color_Group': 'Highlight Status',
+            'confederation': 'Confederation'
+        }
     )
     
     # Add annotations for top 3 teams
