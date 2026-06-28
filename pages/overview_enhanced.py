@@ -197,12 +197,13 @@ with col3:
     confed_counts = predictions['confederation'].value_counts().reset_index()
     confed_counts.columns = ['confederation', 'count']
     
-    fig_donut = px.donut(
+    fig_donut = px.pie(
         confed_counts,
         values='count',
         names='confederation',
         title='Teams per Confederation',
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        hole=0.4
     )
     
     fig_donut.update_layout(
