@@ -14,158 +14,160 @@ import numpy as np
 # ============================================================================
 
 def load_custom_css():
-    """Inject custom CSS for professional World Cup 2026 dark theme."""
+    """Inject custom CSS for official FWC26 light theme."""
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Bebas+Neue&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700;900&family=Bebas+Neue&display=swap');
     
     /* Global Styles */
     .stApp {
-        background: linear-gradient(135deg, #10061e 0%, #1f0b3b 50%, #10061e 100%);
+        background-color: #ffffff;
+        color: #000000;
     }
     
     /* Headers */
     h1, h2, h3, h4, h5, h6 {
-        color: #ffffff !important;
-        font-family: 'Bebas Neue', 'Montserrat', sans-serif !important;
-        letter-spacing: 0.05em !important;
+        color: #000000 !important;
+        font-family: 'Bebas Neue', 'Noto Sans', sans-serif !important;
+        letter-spacing: 0.03em !important;
+        text-transform: uppercase;
     }
     
-    h1 { font-size: 3rem !important; margin-bottom: 0.5rem !important; color: #ffffff !important; }
-    h2 { font-size: 2.2rem !important; color: #00ff85 !important; }
-    h3 { font-size: 1.8rem !important; color: #ff0055 !important; }
+    h1 { font-size: 3.5rem !important; margin-bottom: 0.5rem !important; }
+    h2 { font-size: 2.5rem !important; }
+    h3 { font-size: 2rem !important; }
     
     /* Text */
-    p, span, div {
-        font-family: 'Montserrat', sans-serif !important;
+    p, span, div, li, td, th {
+        font-family: 'Noto Sans', sans-serif !important;
+        color: #000000;
     }
     
     /* Metric Cards */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #2b1154 0%, #160a2c 100%);
-        border-radius: 12px;
+        background: #ffffff;
+        border-radius: 0px;
         padding: 1.5rem;
-        border: 1px solid #4a1e82;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        border: 4px solid #000000;
+        box-shadow: 6px 6px 0px #FF004D;
+        transition: all 0.2s ease;
+    }
+    
+    [data-testid="stMetric"]:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 8px 8px 0px #7B00FF;
     }
     
     [data-testid="stMetricValue"] {
-        color: #00ff85 !important;
-        font-size: 2.5rem !important;
-        font-weight: 800 !important;
+        color: #000000 !important;
+        font-size: 3rem !important;
+        font-weight: 900 !important;
         font-family: 'Bebas Neue', sans-serif !important;
-        letter-spacing: 0.05em !important;
     }
     
     [data-testid="stMetricLabel"] {
-        color: #d1d5db !important;
-        font-size: 0.9rem !important;
+        color: #000000 !important;
+        font-size: 1rem !important;
         text-transform: uppercase !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.1em !important;
+        font-weight: 900 !important;
     }
     
     [data-testid="stMetricDelta"] {
-        color: #ff0055 !important;
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
+        color: #00B347 !important; /* WC26 Green */
+        font-size: 1rem !important;
+        font-weight: 700 !important;
     }
     
     /* Sidebar */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0b0514 0%, #1a0b33 100%);
-        border-right: 2px solid #4a1e82;
+        background-color: #f3f4f6;
+        border-right: 4px solid #000000;
     }
     
     /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #9d00ff 0%, #ff0055 100%);
-        color: white;
+        background-color: #000000;
+        color: #ffffff !important;
         border: none;
-        border-radius: 30px;
+        border-radius: 0px;
         padding: 0.5rem 1.5rem;
-        font-weight: 700;
+        font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        transition: all 0.3s ease;
+        font-family: 'Noto Sans', sans-serif !important;
+        transition: all 0.2s ease;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, #ff0055 0%, #9d00ff 100%);
+        background-color: #FF004D;
+        color: #ffffff !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(255, 0, 85, 0.5);
+        box-shadow: 4px 4px 0px #000000;
     }
     
     /* Dataframes */
     [data-testid="stDataFrame"] {
-        border-radius: 12px;
+        border-radius: 0px;
         overflow: hidden;
-        border: 1px solid #4a1e82;
-        background: #160a2c !important;
+        border: 2px solid #000000;
+        background: #ffffff !important;
     }
     
     /* Select boxes */
     [data-testid="stSelectbox"] > div {
-        background: #160a2c;
-        border: 1px solid #4a1e82;
-        border-radius: 8px;
+        background: #ffffff;
+        border: 2px solid #000000;
+        border-radius: 0px;
+        color: #000000;
     }
     
-    /* Success/Error messages */
-    [data-testid="stAlert"] {
-        border-radius: 8px;
-        border: none;
-    }
-    
-    /* Hide Streamlit branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Custom card */
+    /* Info Cards (WC26 Pattern Vibes) */
     .info-card {
-        background: linear-gradient(135deg, rgba(157, 0, 255, 0.1) 0%, rgba(255, 0, 85, 0.05) 100%);
-        border-radius: 12px;
+        background: #ffffff;
+        border-radius: 0px;
         padding: 1.5rem;
         margin: 1rem 0;
-        border: 1px solid #9d00ff;
-        border-left: 5px solid #00ff85;
+        border: 3px solid #000000;
+        border-left: 8px solid #00F0FF; /* WC26 Cyan */
+        box-shadow: 4px 4px 0px #000000;
     }
     
     .info-card h4 {
-        color: #00ff85 !important;
+        color: #000000 !important;
         margin-top: 0 !important;
         font-family: 'Bebas Neue', sans-serif !important;
-        letter-spacing: 0.05em !important;
     }
     
     .info-card p {
-        color: #e5e7eb !important;
+        color: #000000 !important;
         line-height: 1.6 !important;
+        font-weight: 600;
     }
     
     /* Probability badges */
     .prob-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 700;
+        border-radius: 0px;
+        font-size: 0.8rem;
+        font-weight: 900;
         margin: 0.25rem;
         text-transform: uppercase;
+        border: 2px solid #000000;
     }
     
-    .prob-high { background: #ff0055; color: white; }
-    .prob-medium { background: #9d00ff; color: white; }
-    .prob-low { background: #00ff85; color: #0b0514; }
+    .prob-high { background: #FF004D; color: white; }
+    .prob-medium { background: #7B00FF; color: white; }
+    .prob-low { background: #00FF00; color: black; }
     
     /* Team tier badges */
-    .tier-favorite { background: #ff0055; color: white; }
-    .tier-contender { background: #9d00ff; color: white; }
-    .tier-dark-horse { background: #00ff85; color: #0b0514; }
-    .tier-underdog { background: #6b7280; color: white; }
+    .tier-favorite { background: #000000; color: white; }
+    .tier-contender { background: #7B00FF; color: white; }
+    .tier-dark-horse { background: #00F0FF; color: black; }
+    .tier-underdog { background: #ffffff; color: black; border: 2px solid #000000; }
     </style>
     """, unsafe_allow_html=True)
+
 
 # ============================================================================
 # PAGE COMPONENTS
@@ -181,7 +183,7 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
             st.markdown(f"<div style='font-size: 3.5rem; text-align: center;'>{icon}</div>", unsafe_allow_html=True)
     with col2:
         st.title(title)
-        st.markdown(f"<p style='color: #e5e7eb; font-size: 1.1rem; margin-top: -1rem;'>{description}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: #000000; font-size: 1.1rem; margin-top: -1rem;'>{description}</p>", unsafe_allow_html=True)
     st.divider()
 
 def kpi_cards(items: List[Tuple[str, Any, Optional[str]]], cols: Optional[int] = None):

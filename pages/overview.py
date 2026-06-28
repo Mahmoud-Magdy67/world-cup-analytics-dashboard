@@ -18,7 +18,7 @@ load_custom_css()
 page_header(
     "Executive Overview",
     "Tournament intelligence, championship projections, and cross-dimensional analytics",
-    image_url="https://upload.wikimedia.org/wikipedia/en/thumb/7/7b/2026_FIFA_World_Cup_Logo.svg/512px-2026_FIFA_World_Cup_Logo.svg.png"
+    image_url="https://digitalhub.fifa.com/transform/549c4dce-df67-4277-a8a0-2f924fb3ba64/FIFA-World-Cup-26-Brand-Launch?io=transform:fill,width:800,height:800"
 )
 
 # ============================================================================
@@ -100,7 +100,7 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
         path=['Tournament', 'confederation', 'group_name', 'team_name'], 
         values='elo_rating',
         color='championship_probability_pct',
-        color_continuous_scale='Viridis',
+        color_continuous_scale=['#FFFFFF', '#00F0FF', '#7B00FF', '#FF004D'],
         hover_data=['championship_probability_pct', 'elo_rating', 'total_market_value_eur'],
         title="World Cup Power Hierarchy (Box Size = Team Strength, Color = Tournament Win Probability)",
         labels={
@@ -114,8 +114,8 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
     )
     fig_tree.update_layout(
         margin=dict(t=30, l=10, r=10, b=10),
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff', size=12)
+        paper_bgcolor='#ffffff',
+        font=dict(color='#000000', size=14, family='Noto Sans')
     )
     st.plotly_chart(fig_tree, width='stretch')
     
@@ -204,14 +204,14 @@ if heat_cols and 'team_name' in filtered_preds.columns:
         heat_df, 
         text_auto=".1f", 
         aspect="auto", 
-        color_continuous_scale="Blues",
+        color_continuous_scale=['#FFFFFF', '#00FF00', '#00F0FF', '#7B00FF', '#FF004D'],
         labels=dict(x="Tournament Stage", y="Team", color="Probability (%)"),
         title="Projected Tournament Survival Rates (Top 15 Teams)"
     )
     fig_heat.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff')
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#ffffff',
+        font=dict(color='#000000', family='Noto Sans')
     )
     st.plotly_chart(fig_heat, width='stretch')
     info_card("AI Insight", "The progression heatmap illustrates the 'attrition rate' of top teams. Sharp drop-offs between the Quarter-Finals and Semi-Finals indicate structural bottlenecks where tournament favorites are projected to eliminate each other.")
@@ -241,7 +241,7 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
         hover_name='team_name',
         size='elo_rating',
         color='Color_Group' if highlight_team != "None" else 'confederation',
-        color_discrete_map={'Highlighted': '#00ff00', 'Standard': '#888888'} if highlight_team != "None" else None,
+        color_discrete_map={'Highlighted': '#FF004D', 'Standard': '#A0A0A0'} if highlight_team != "None" else None,
         title="Bubble Size = Overall Team Strength (ELO)",
         labels={
             'market_value_b': 'Market Value (€ Billions)', 
@@ -264,9 +264,9 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
         )
         
     fig_scatter.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff')
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#ffffff',
+        font=dict(color='#000000', family='Noto Sans')
     )
     st.plotly_chart(fig_scatter, width='stretch')
     
