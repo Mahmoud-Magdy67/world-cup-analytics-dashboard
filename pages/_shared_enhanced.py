@@ -14,22 +14,28 @@ import numpy as np
 # ============================================================================
 
 def load_custom_css():
-    """Inject custom CSS for official FWC26 light theme."""
+    """Inject custom CSS for official FWC26 light theme with background."""
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700;900&family=Bebas+Neue&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
     
-    /* Global Styles */
+    /* Global Styles & Background */
     .stApp {
         background-color: #ffffff;
-        color: #000000;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('https://images.unsplash.com/photo-1518605368461-1e125228114e?q=80&w=2000&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
     }
     
-    /* Headers */
+    /* Force Bebas Neue on absolutely everything to match WC26 brand guidelines */
+    * {
+        font-family: 'Bebas Neue', sans-serif !important;
+        letter-spacing: 0.05em !important;
+    }
+    
     h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
-        font-family: 'Bebas Neue', 'Noto Sans', sans-serif !important;
-        letter-spacing: 0.03em !important;
         text-transform: uppercase;
     }
     
@@ -37,15 +43,14 @@ def load_custom_css():
     h2 { font-size: 2.5rem !important; }
     h3 { font-size: 2rem !important; }
     
-    /* Text */
     p, span, div, li, td, th {
-        font-family: 'Noto Sans', sans-serif !important;
         color: #000000;
+        font-size: 1.1rem;
     }
     
     /* Metric Cards */
     [data-testid="stMetric"] {
-        background: #ffffff;
+        background: rgba(255, 255, 255, 0.9);
         border-radius: 0px;
         padding: 1.5rem;
         border: 4px solid #000000;
@@ -60,22 +65,19 @@ def load_custom_css():
     
     [data-testid="stMetricValue"] {
         color: #000000 !important;
-        font-size: 3rem !important;
-        font-weight: 900 !important;
-        font-family: 'Bebas Neue', sans-serif !important;
+        font-size: 3.5rem !important;
+        font-weight: 400 !important;
     }
     
     [data-testid="stMetricLabel"] {
         color: #000000 !important;
-        font-size: 1rem !important;
+        font-size: 1.2rem !important;
         text-transform: uppercase !important;
-        font-weight: 900 !important;
     }
     
     [data-testid="stMetricDelta"] {
-        color: #00B347 !important; /* WC26 Green */
-        font-size: 1rem !important;
-        font-weight: 700 !important;
+        color: #00B347 !important;
+        font-size: 1.2rem !important;
     }
     
     /* Sidebar */
@@ -91,10 +93,8 @@ def load_custom_css():
         border: none;
         border-radius: 0px;
         padding: 0.5rem 1.5rem;
-        font-weight: 900;
+        font-size: 1.2rem !important;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-family: 'Noto Sans', sans-serif !important;
         transition: all 0.2s ease;
     }
     
@@ -110,7 +110,7 @@ def load_custom_css():
         border-radius: 0px;
         overflow: hidden;
         border: 2px solid #000000;
-        background: #ffffff !important;
+        background: rgba(255, 255, 255, 0.9) !important;
     }
     
     /* Select boxes */
@@ -121,27 +121,27 @@ def load_custom_css():
         color: #000000;
     }
     
-    /* Info Cards (WC26 Pattern Vibes) */
+    /* Info Cards */
     .info-card {
-        background: #ffffff;
+        background: rgba(255, 255, 255, 0.95);
         border-radius: 0px;
         padding: 1.5rem;
         margin: 1rem 0;
         border: 3px solid #000000;
-        border-left: 8px solid #00F0FF; /* WC26 Cyan */
+        border-left: 8px solid #00F0FF;
         box-shadow: 4px 4px 0px #000000;
     }
     
     .info-card h4 {
         color: #000000 !important;
         margin-top: 0 !important;
-        font-family: 'Bebas Neue', sans-serif !important;
+        font-size: 1.8rem !important;
     }
     
     .info-card p {
         color: #000000 !important;
-        line-height: 1.6 !important;
-        font-weight: 600;
+        font-size: 1.2rem !important;
+        line-height: 1.4 !important;
     }
     
     /* Probability badges */
@@ -149,8 +149,7 @@ def load_custom_css():
         display: inline-block;
         padding: 0.25rem 0.75rem;
         border-radius: 0px;
-        font-size: 0.8rem;
-        font-weight: 900;
+        font-size: 1rem;
         margin: 0.25rem;
         text-transform: uppercase;
         border: 2px solid #000000;
@@ -167,7 +166,6 @@ def load_custom_css():
     .tier-underdog { background: #ffffff; color: black; border: 2px solid #000000; }
     </style>
     """, unsafe_allow_html=True)
-
 
 # ============================================================================
 # PAGE COMPONENTS
