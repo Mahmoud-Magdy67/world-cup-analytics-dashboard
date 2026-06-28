@@ -90,9 +90,9 @@ with col1:
     display_df = top_16[display_cols].copy()
     display_df.columns = ['Rank', 'Team', 'Group', 'Win %', 'ELO', 'Value (€B)', 'Tier']
     
-    # Simple formatting without background_gradient (requires matplotlib)
+    # Simple formatting (no background_gradient to avoid matplotlib dependency)
     st.dataframe(
-        display_df.format({
+        display_df.style.format({
             'Win %': '{:.2f}%'
         }),
         use_container_width=True,
@@ -237,8 +237,8 @@ for tab, group in zip(tabs, groups):
             'round32_probability_pct'
         ]
         
-        # Simple formatting without background_gradient (requires matplotlib)
-        styled = group_data[display_cols].format({
+        # Simple formatting (no background_gradient to avoid matplotlib dependency)
+        styled = group_data[display_cols].style.format({
             'avg_group_points': '{:.2f}',
             'avg_group_goal_difference': '{:+.2f}',
             'group_winner_probability_pct': '{:.1f}%',
