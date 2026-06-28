@@ -3,17 +3,17 @@ from typing import Final, Optional
 import os, json, base64
 import pandas as pd
 from google.cloud import bigquery
+from google.oauth2 import service_account
 
 # Allowed datasets (read-only)
 ALLOWED_BIGQUERY_DATASET_PLACEHOLDERS: Final[list[str]] = [
-    "PROJECT_ID.worldcup_2026",
-    "PROJECT_ID.worldcup_analytics", 
-    "PROJECT_ID.worldcup_predictions"
+    "project-2f1e456e-b1be-4551-92b.worldcup_2026"
 ]
 READ_ONLY_RULE: Final[str] = "Only SELECT queries are allowed for BigQuery access."
 
 # GCP Configuration
 GCP_PROJECT_ID: Final[str] = os.getenv("GCP_PROJECT_ID", "project-2f1e456e-b1be-4551-92b")
+BIGQUERY_DATASET: Final[str] = "worldcup_2026"
 
 def _get_bigquery_client() -> Optional[bigquery.Client]:
     """Initialize BigQuery client from environment credentials."""
@@ -22,7 +22,7 @@ def _get_bigquery_client() -> Optional[bigquery.Client]:
         return None
     try:
         creds_json = json.loads(base64.b64decode(creds_b64).decode())
-        credentials = bigquery.Credentials.from_service_account_info(creds_json)
+        credentials = service_account.Credentials.from_service_account_info(creds_json)
         return bigquery.Client(project=GCP_PROJECT_ID, credentials=credentials)
     except Exception:
         return None
@@ -32,17 +32,40 @@ class DataSourceStatus:
     mode: str
     bigquery_enabled: bool
     note: str
+    tables_available: Optional[dict] = None
 
 def get_data_source_status() -> DataSourceStatus:
-    """Check if BigQuery is connected and functional."""
+    """Check if BigQuery is connected and list available tables."""
     client = _get_bigquery_client()
     if client:
         try:
+            # Verify connection with simple query
             client.query("SELECT 1").result()
-            return DataSourceStatus("bigquery", True, f"Connected to BigQuery project {GCP_PROJECT_ID}")
+            
+            # Get table metadata
+            tables_info = {}
+            table_queries = {
+                'wc26_dashboard_comprehensive_v15_live': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`',
+                'v_winner_prediction_dashboard_v15_live_10m': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`',
+                'v_real_player_rows_enriched_v8': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`',
+                'v_team_schedule': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_team_schedule`',
+            }
+            for name, query in table_queries.items():
+                try:
+                    result = client.query(query).result().to_dataframe()
+                    tables_info[name] = int(result['cnt'].iloc[0])
+                except:
+                    tables_info[name] = 0
+            
+            return DataSourceStatus(
+                "bigquery", 
+                True, 
+                f"Connected to BigQuery project {GCP_PROJECT_ID}.{BIGQUERY_DATASET}",
+                tables_info
+            )
         except Exception as e:
-            return DataSourceStatus("bigquery_error", False, f"BigQuery connection failed: {str(e)[:100]}")
-    return DataSourceStatus("mock", False, "BigQuery credentials not configured; using mock data")
+            return DataSourceStatus("bigquery_error", False, f"BigQuery connection failed: {str(e)[:100]}", None)
+    return DataSourceStatus("mock", False, "BigQuery credentials not configured; using mock data", None)
 
 def _execute_readonly_query(query: str) -> pd.DataFrame:
     """Execute a read-only SELECT query. Raises ValueError for non-SELECT statements."""
@@ -55,53 +78,147 @@ def _execute_readonly_query(query: str) -> pd.DataFrame:
     job = client.query(query)
     return job.result().to_dataframe()
 
-# Public API functions
+# ============================================================================
+# REAL BIGQUERY QUERIES - World Cup 2026 Dataset
+# ============================================================================
+
 def get_teams() -> pd.DataFrame:
-    """Fetch teams data from BigQuery or fallback to mock."""
+    """
+    Fetch teams data from wc26_dashboard_comprehensive_v15_live.
+    
+    SQL Query:
+    SELECT 
+        team_name, group_name, winner_rank, championship_probability,
+        elo_rating, total_market_value_eur, contender_tier,
+        round32_probability, round16_probability, quarterfinal_probability,
+        semifinal_probability, final_probability,
+        avg_group_points, avg_group_goal_difference, avg_group_goals_for
+    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.wc26_dashboard_comprehensive_v15_live`
+    ORDER BY winner_rank
+    
+    Returns columns: team_name, group_name, winner_rank, championship_probability, elo_rating,
+                     total_market_value_eur, contender_tier, round32_probability, round16_probability,
+                     quarterfinal_probability, semifinal_probability, final_probability,
+                     avg_group_points, avg_group_goal_difference, avg_group_goals_for
+    
+    Expected rows: 48 teams
+    """
     query = f"""
-    SELECT team, confederation, "group" as group_letter, rating, goals_for, goals_against, xg, win_probability
-    FROM `{GCP_PROJECT_ID}.worldcup_2026.teams`
-    ORDER BY rating DESC
+    SELECT 
+        team_name, group_name, winner_rank, championship_probability,
+        elo_rating, total_market_value_eur, contender_tier,
+        round32_probability, round16_probability, quarterfinal_probability,
+        semifinal_probability, final_probability,
+        avg_group_points, avg_group_goal_difference, avg_group_goals_for
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`
+    ORDER BY winner_rank
     """
     try:
         return _execute_readonly_query(query)
-    except Exception:
+    except Exception as e:
+        print(f"BigQuery error in get_teams(): {e}")
         return _get_mock_teams()
 
 def get_players() -> pd.DataFrame:
-    """Fetch players data from BigQuery or fallback to mock."""
+    """
+    Fetch players data from v_real_player_rows_enriched_v8.
+    
+    SQL Query:
+    SELECT 
+        player_name, nation_code, position, club_team, league,
+        goals, assists, goals_assists, xg, xa,
+        minutes, matches_played, age
+    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.v_real_player_rows_enriched_v8`
+    WHERE nation_code IN (SELECT DISTINCT fifa_code FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.v_teams_clean`)
+    ORDER BY goals DESC, assists DESC
+    LIMIT 500
+    
+    Returns columns: player_name, nation_code, position, club_team, league,
+                     goals, assists, goals_assists, xg, xa, minutes, matches_played, age
+    
+    Expected rows: ~500 players (top scorers from World Cup nations)
+    """
     query = f"""
-    SELECT player, team, position, goals, assists, xg, xa, minutes
-    FROM `{GCP_PROJECT_ID}.worldcup_2026.players`
-    ORDER BY goals DESC
+    SELECT 
+        player_name, nation_code, position, club_team, league,
+        goals, assists, goals_assists, xg, xa,
+        minutes, matches_played, age
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
+    WHERE nation_code IN (SELECT DISTINCT fifa_code FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_teams_clean`)
+    ORDER BY goals DESC, assists DESC
+    LIMIT 500
     """
     try:
         return _execute_readonly_query(query)
-    except Exception:
+    except Exception as e:
+        print(f"BigQuery error in get_players(): {e}")
         return _get_mock_players()
 
 def get_matches() -> pd.DataFrame:
-    """Fetch matches data from BigQuery or fallback to mock."""
+    """
+    Fetch match schedule from v_team_schedule.
+    
+    SQL Query:
+    SELECT 
+        match_number, match_date, stage, group_name,
+        team, opponent, venue, city, status
+    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.v_team_schedule`
+    ORDER BY match_date, match_number
+    
+    Returns columns: match_number, match_date, stage, group_name,
+                     team, opponent, venue, city, status
+    
+    Expected rows: 208 matches (group stage + knockout)
+    """
     query = f"""
-    SELECT CONCAT(home_team, ' vs ', away_team) as match, stage, home_goals, away_goals, total_xg, attendance
-    FROM `{GCP_PROJECT_ID}.worldcup_2026.matches`
-    ORDER BY stage DESC, attendance DESC
+    SELECT 
+        match_number, match_date, stage, group_name,
+        team, opponent, venue, city, status
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_team_schedule`
+    ORDER BY match_date, match_number
     """
     try:
         return _execute_readonly_query(query)
-    except Exception:
+    except Exception as e:
+        print(f"BigQuery error in get_matches(): {e}")
         return _get_mock_matches()
 
 def get_predictions() -> pd.DataFrame:
-    """Fetch predictions data from BigQuery or fallback to mock."""
+    """
+    Fetch championship predictions from v_winner_prediction_dashboard_v15_live_10m.
+    
+    SQL Query:
+    SELECT 
+        team_name, fifa_code, group_name, confederation,
+        championship_probability_pct, final_probability_pct,
+        semifinal_probability_pct, quarterfinal_probability_pct,
+        round16_probability_pct, winner_rank, model_method,
+        elo_rating, generated_at
+    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.v_winner_prediction_dashboard_v15_live_10m`
+    ORDER BY winner_rank
+    
+    Returns columns: team_name, fifa_code, group_name, confederation,
+                     championship_probability_pct, final_probability_pct,
+                     semifinal_probability_pct, quarterfinal_probability_pct,
+                     round16_probability_pct, winner_rank, model_method,
+                     elo_rating, generated_at
+    
+    Expected rows: 48 teams
+    """
     query = f"""
-    SELECT team, win_probability, rating, model_method
-    FROM `{GCP_PROJECT_ID}.worldcup_predictions.tournament_winner`
-    ORDER BY win_probability DESC
+    SELECT 
+        team_name, fifa_code, group_name, confederation,
+        championship_probability_pct, final_probability_pct,
+        semifinal_probability_pct, quarterfinal_probability_pct,
+        round16_probability_pct, winner_rank, model_method,
+        elo_rating, generated_at
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`
+    ORDER BY winner_rank
     """
     try:
         return _execute_readonly_query(query)
-    except Exception:
+    except Exception as e:
+        print(f"BigQuery error in get_predictions(): {e}")
         return _get_mock_predictions()
 
 # Backward compatibility aliases
@@ -110,38 +227,46 @@ get_mock_players = get_players
 get_mock_matches = get_matches
 get_mock_predictions = get_predictions
 
-# Legacy mock data (fallback)
+# ============================================================================
+# MOCK DATA FALLBACK (when BigQuery unavailable)
+# ============================================================================
+
 def _get_mock_teams():
     return pd.DataFrame([
-        {"team":"Brazil","confederation":"CONMEBOL","group":"A","rating":91,"goals_for":14,"goals_against":5,"xg":12.8,"win_probability":0.18},
-        {"team":"France","confederation":"UEFA","group":"B","rating":90,"goals_for":13,"goals_against":6,"xg":11.7,"win_probability":0.16},
-        {"team":"Argentina","confederation":"CONMEBOL","group":"C","rating":89,"goals_for":12,"goals_against":6,"xg":10.9,"win_probability":0.14},
-        {"team":"England","confederation":"UEFA","group":"D","rating":88,"goals_for":11,"goals_against":7,"xg":10.2,"win_probability":0.12},
-        {"team":"Morocco","confederation":"CAF","group":"E","rating":84,"goals_for":8,"goals_against":5,"xg":8.4,"win_probability":0.07},
-        {"team":"Japan","confederation":"AFC","group":"F","rating":82,"goals_for":7,"goals_against":6,"xg":7.2,"win_probability":0.05},
+        {"team_name":"Spain","group_name":"H","winner_rank":1,"championship_probability":0.154,"elo_rating":2212,"total_market_value_eur":3427975000,"contender_tier":"Top 5"},
+        {"team_name":"France","group_name":"I","winner_rank":2,"championship_probability":0.091,"elo_rating":2107,"total_market_value_eur":4083000000,"contender_tier":"Top 5"},
+        {"team_name":"Argentina","group_name":"J","winner_rank":3,"championship_probability":0.083,"elo_rating":2158,"total_market_value_eur":1569025000,"contender_tier":"Top 5"},
+        {"team_name":"England","group_name":"L","winner_rank":4,"championship_probability":0.079,"elo_rating":2081,"total_market_value_eur":4251575000,"contender_tier":"Top 5"},
+        {"team_name":"Netherlands","group_name":"F","winner_rank":5,"championship_probability":0.068,"elo_rating":2024,"total_market_value_eur":2121375000,"contender_tier":"Top 5"},
+        {"team_name":"Germany","group_name":"E","winner_rank":6,"championship_probability":0.053,"elo_rating":1975,"total_market_value_eur":2380800000,"contender_tier":"Top 10"},
     ])
 
 def _get_mock_players():
     return pd.DataFrame([
-        {"player":"Vinicius Jr","team":"Brazil","position":"Forward","goals":5,"assists":3,"xg":4.6,"xa":2.1,"minutes":560},
-        {"player":"Kylian Mbappe","team":"France","position":"Forward","goals":6,"assists":2,"xg":5.2,"xa":1.8,"minutes":590},
-        {"player":"Lionel Messi","team":"Argentina","position":"Forward","goals":4,"assists":4,"xg":3.7,"xa":3.4,"minutes":540},
-        {"player":"Jude Bellingham","team":"England","position":"Midfielder","goals":3,"assists":3,"xg":2.8,"xa":2.6,"minutes":610},
-        {"player":"Achraf Hakimi","team":"Morocco","position":"Defender","goals":1,"assists":4,"xg":0.9,"xa":2.9,"minutes":620},
-        {"player":"Takefusa Kubo","team":"Japan","position":"Midfielder","goals":2,"assists":2,"xg":1.7,"xa":2.3,"minutes":430},
+        {"player_name":"Robert Lewandowski","nation_code":"POL","position":"FW","club_team":"Bayern Munich","league":"GER","goals":41,"assists":7,"xg":32.1,"xa":4.8,"minutes":2458,"matches_played":29,"age":31},
+        {"player_name":"Luis Suárez","nation_code":"URU","position":"FW","club_team":"Barcelona","league":"ESP","goals":40,"assists":17,"xg":35.8,"xa":13.3,"minutes":3150,"matches_played":35,"age":28},
+        {"player_name":"Lionel Messi","nation_code":"ARG","position":"FW","club_team":"Barcelona","league":"ESP","goals":37,"assists":9,"xg":26.9,"xa":14.0,"minutes":2830,"matches_played":34,"age":29},
+        {"player_name":"Erling Haaland","nation_code":"NOR","position":"FW","club_team":"Manchester City","league":"EPL","goals":36,"assists":8,"xg":32.8,"xa":5.8,"minutes":2769,"matches_played":35,"age":22},
+        {"player_name":"Harry Kane","nation_code":"ENG","position":"FW","club_team":"Bayern Munich","league":"GER","goals":36,"assists":8,"xg":33.1,"xa":6.8,"minutes":2839,"matches_played":32,"age":30},
+        {"player_name":"Kylian Mbappé","nation_code":"FRA","position":"FW","club_team":"Paris Saint-Germain","league":"FRA","goals":33,"assists":7,"xg":None,"xa":None,"minutes":2343,"matches_played":29,"age":19},
     ])
 
 def _get_mock_matches():
     return pd.DataFrame([
-        {"match":"Brazil vs France","stage":"Semi-final","home_goals":2,"away_goals":1,"total_xg":3.4,"attendance":79000},
-        {"match":"Argentina vs England","stage":"Semi-final","home_goals":1,"away_goals":1,"total_xg":2.7,"attendance":76000},
-        {"match":"Morocco vs Japan","stage":"Quarter-final","home_goals":2,"away_goals":0,"total_xg":2.3,"attendance":61000},
-        {"match":"Brazil vs Morocco","stage":"Quarter-final","home_goals":3,"away_goals":1,"total_xg":3.8,"attendance":71000},
-        {"match":"France vs Japan","stage":"Round of 16","home_goals":2,"away_goals":1,"total_xg":2.9,"attendance":67000},
+        {"match_number":1,"match_date":"2026-06-11","stage":"Group Stage","group_name":"A","team":"South Africa","opponent":"Mexico","venue":"Estadio Azteca","city":"Mexico City","status":"confirmed_group_fixture"},
+        {"match_number":2,"match_date":"2026-06-11","stage":"Group Stage","group_name":"A","team":"Czechia","opponent":"Korea Republic","venue":"Estadio Akron","city":"Guadalajara","status":"confirmed_group_fixture"},
+        {"match_number":3,"match_date":"2026-06-12","stage":"Group Stage","group_name":"B","team":"Bosnia and Herzegovina","opponent":"Canada","venue":"BMO Field","city":"Toronto","status":"confirmed_group_fixture"},
+        {"match_number":4,"match_date":"2026-06-12","stage":"Group Stage","group_name":"D","team":"United States","opponent":"Paraguay","venue":"SoFi Stadium","city":"Los Angeles","status":"confirmed_group_fixture"},
+        {"match_number":5,"match_date":"2026-06-13","stage":"Group Stage","group_name":"C","team":"Haiti","opponent":"Scotland","venue":"Gillette Stadium","city":"Boston","status":"confirmed_group_fixture"},
+        {"match_number":6,"match_date":"2026-06-13","stage":"Group Stage","group_name":"D","team":"Türkiye","opponent":"Australia","venue":"BC Place","city":"Vancouver","status":"confirmed_group_fixture"},
     ])
 
 def _get_mock_predictions():
-    t=_get_mock_teams()[["team","win_probability","rating"]].copy()
-    t["final_probability"]=(t.win_probability*1.8).clip(upper=0.32)
-    t["model_method"]=["elo_xg_blend","elo_xg_blend","monte_carlo","monte_carlo","baseline","baseline"]
-    return t
+    return pd.DataFrame([
+        {"team_name":"Spain","fifa_code":"ESP","group_name":"H","confederation":"UEFA","championship_probability_pct":15.35,"final_probability_pct":23.25,"semifinal_probability_pct":36.77,"quarterfinal_probability_pct":52.18,"round16_probability_pct":80.37,"winner_rank":1,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2212.23},
+        {"team_name":"France","fifa_code":"FRA","group_name":"I","confederation":"UEFA","championship_probability_pct":9.09,"final_probability_pct":16.14,"semifinal_probability_pct":26.83,"quarterfinal_probability_pct":40.99,"round16_probability_pct":73.52,"winner_rank":2,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2106.79},
+        {"team_name":"Argentina","fifa_code":"ARG","group_name":"J","confederation":"CONMEBOL","championship_probability_pct":8.27,"final_probability_pct":17.02,"semifinal_probability_pct":31.54,"quarterfinal_probability_pct":47.82,"round16_probability_pct":64.48,"winner_rank":3,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2157.70},
+        {"team_name":"England","fifa_code":"ENG","group_name":"L","confederation":"UEFA","championship_probability_pct":7.87,"final_probability_pct":14.20,"semifinal_probability_pct":23.04,"quarterfinal_probability_pct":35.55,"round16_probability_pct":53.47,"winner_rank":4,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2080.53},
+        {"team_name":"Netherlands","fifa_code":"NED","group_name":"F","confederation":"UEFA","championship_probability_pct":6.83,"final_probability_pct":13.14,"semifinal_probability_pct":25.30,"quarterfinal_probability_pct":48.25,"round16_probability_pct":68.28,"winner_rank":5,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2024.24},
+        {"team_name":"Germany","fifa_code":"GER","group_name":"E","confederation":"UEFA","championship_probability_pct":5.27,"final_probability_pct":10.56,"semifinal_probability_pct":21.58,"quarterfinal_probability_pct":41.13,"round16_probability_pct":70.83,"winner_rank":6,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":1974.93},
+    ])
