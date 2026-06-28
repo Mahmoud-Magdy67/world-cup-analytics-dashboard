@@ -188,8 +188,6 @@ def get_team_attributes() -> pd.DataFrame:
     """
     try:
         result = _execute_readonly_query(query)
-        # Clear cache to ensure fresh data
-        st.cache_data.clear()
         return result
     except Exception as e:
         st.error(f"Team attributes query error: {str(e)[:200]}")
@@ -212,9 +210,8 @@ def get_players(limit: int = 500) -> pd.DataFrame:
         player_name, nation_code, position, club_team, league, season,
         age, matches_played, starts, minutes, nineties_played,
         goals, assists, goals_assists, xg, xa, npxg,
-        shots, shots_on_target, shot_on_target_pct,
-        tackles, tackles_won, interceptions, blocks, clearances,
-        progressive_passes, progressive_carries, progressive_receives,
+        shots, shots_on_target,
+        tackles, tackles_won, interceptions, blocks, clearances, tackles_interceptions,
         gk_minutes, gk_goals_against, gk_save_pct, gk_clean_sheets
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
     ORDER BY goals DESC, assists DESC, xg DESC
@@ -235,14 +232,13 @@ def get_player_percentiles() -> pd.DataFrame:
     SELECT 
         player_name, nation_code, position,
         goals, assists, xg, xa,
-        progressive_passes, progressive_carries,
-        tackles, interceptions,
+        tackles, interceptions, tackles_interceptions,
         gk_save_pct,
         PERCENT_RANK() OVER (ORDER BY goals) as goals_pct,
         PERCENT_RANK() OVER (ORDER BY assists) as assists_pct,
         PERCENT_RANK() OVER (ORDER BY xg) as xg_pct,
-        PERCENT_RANK() OVER (ORDER BY progressive_passes) as prog_pass_pct,
-        PERCENT_RANK() OVER (ORDER BY tackles) as tackles_pct
+        PERCENT_RANK() OVER (ORDER BY tackles) as tackles_pct,
+        PERCENT_RANK() OVER (ORDER BY interceptions) as interceptions_pct
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`
     WHERE minutes >= 500
     """
@@ -315,15 +311,15 @@ def get_predictions() -> pd.DataFrame:
     """
     query = f"""
     SELECT 
-        team_name, fifa_code, group_name, confederation,
-        championship_probability_pct, final_probability_pct,
-        semifinal_probability_pct, quarterfinal_probability_pct,
-        round16_probability_pct, runner_up_probability_pct,
-        third_place_probability_pct,
-        group_winner_probability_pct, group_runner_up_probability_pct,
-        winner_rank, model_method, elo_rating,
-        avg_group_points, avg_group_goal_difference, avg_group_goals_for,
-        total_market_value_eur, vfc2_hybrid_power_score, real_world_score
+         team_name, fifa_code, group_name, confederation,
+         championship_probability_pct, final_probability_pct,
+         semifinal_probability_pct, quarterfinal_probability_pct,
+         round16_probability_pct, runner_up_probability_pct,
+         third_place_probability_pct,
+         group_winner_probability_pct, group_runner_up_probability_pct,
+         winner_rank, model_method, elo_rating,
+         avg_group_points, avg_group_goal_difference, avg_group_goals_for,
+         total_market_value_eur
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`
     ORDER BY winner_rank
     """
