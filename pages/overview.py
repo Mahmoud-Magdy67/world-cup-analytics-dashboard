@@ -166,55 +166,64 @@ with col1:
         st.info("⚠️ Confederation data not available for visualization")
 
 with col2:
-    # Average ELO by confederation
-    teams_with_confed = teams.merge(
-        predictions[['team_name', 'confederation']], on='team_name'
-    )
-    confed_elo = teams_with_confed.groupby('confederation')['elo_rating'].mean().reset_index()
-    confed_elo = confed_elo.sort_values('elo_rating', ascending=False)
-    
-    fig_bar = px.bar(
-        confed_elo,
-        x='confederation',
-        y='elo_rating',
-        title='Average ELO by Confederation',
-        color='elo_rating',
-        color_continuous_scale='Blues'
-    )
-    
-    fig_bar.update_layout(
-        height=350,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        yaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        font=dict(color='#ffffff', size=11),
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    
-    st.plotly_chart(fig_bar, use_container_width=True)
+    # Average ELO by confederation (safe check for required columns)
+    if 'confederation' in predictions.columns and 'team_name' in predictions.columns:
+        teams_with_confed = teams.merge(
+            predictions[['team_name', 'confederation']], on='team_name'
+        )
+        if 'confederation' in teams_with_confed.columns and 'elo_rating' in teams_with_confed.columns:
+            confed_elo = teams_with_confed.groupby('confederation')['elo_rating'].mean().reset_index()
+            confed_elo = confed_elo.sort_values('elo_rating', ascending=False)
+            
+            fig_bar = px.bar(
+                confed_elo,
+                x='confederation',
+                y='elo_rating',
+                title='Average ELO by Confederation',
+                color='elo_rating',
+                color_continuous_scale='Blues'
+            )
+            
+            fig_bar.update_layout(
+                height=350,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
+                yaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
+                font=dict(color='#ffffff', size=11),
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            
+            st.plotly_chart(fig_bar, use_container_width=True)
+        else:
+            st.info("⚠️ ELO rating data not available")
+    else:
+        st.info("⚠️ Confederation data not available for ELO analysis")
 
 with col3:
-    # Teams per confederation
-    confed_counts = predictions['confederation'].value_counts().reset_index()
-    confed_counts.columns = ['confederation', 'count']
-    
-    fig_donut = px.donut(
-        confed_counts,
-        values='count',
-        names='confederation',
-        title='Teams per Confederation',
-        color_discrete_sequence=px.colors.qualitative.Pastel
-    )
-    
-    fig_donut.update_layout(
-        height=350,
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff', size=11),
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    
-    st.plotly_chart(fig_donut, use_container_width=True)
+    # Teams per confederation (safe check for column)
+    if 'confederation' in predictions.columns:
+        confed_counts = predictions['confederation'].value_counts().reset_index()
+        confed_counts.columns = ['confederation', 'count']
+        
+        fig_donut = px.donut(
+            confed_counts,
+            values='count',
+            names='confederation',
+            title='Teams per Confederation',
+            color_discrete_sequence=px.colors.qualitative.Pastel
+        )
+        
+        fig_donut.update_layout(
+            height=350,
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#ffffff', size=11),
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        
+        st.plotly_chart(fig_donut, use_container_width=True)
+    else:
+        st.info("⚠️ Confederation data not available")
 
 st.divider()
 
