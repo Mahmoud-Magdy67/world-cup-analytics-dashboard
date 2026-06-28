@@ -1,3 +1,3 @@
 from pages._shared import *
-page_header('Team Performance','Compare national teams by rating, goals, expected goals, and defensive strength.')
-df=get_teams(); kpi_cards([("Teams",len(df),""),("Avg rating",f"{df.rating.mean():.1f}",""),("Total goals",int(df.goals_for.sum()),"")]); st.plotly_chart(px.scatter(df,x="xg",y="goals_for",size="rating",color="confederation",hover_name="team",title="Team goals vs expected goals"),use_container_width=True)
+page_header('Team Performance','Compare national teams by rating, market value, and tournament predictions.')
+df=get_teams(); kpi_cards([("Teams",len(df),""),("Avg ELO",f"{df.elo_rating.mean():.0f}",""),("Total value",f"€{(df.total_market_value_eur.sum()/1e9):.1f}B","")]); st.plotly_chart(px.scatter(df,x="elo_rating",y="championship_probability",size="total_market_value_eur",color="contender_tier",hover_name="team_name",title="Team ELO vs championship probability"),use_container_width=True); st.dataframe(df[["team_name","group_name","elo_rating","total_market_value_eur","championship_probability","contender_tier"]],use_container_width=True)
