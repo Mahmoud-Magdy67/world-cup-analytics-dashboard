@@ -141,17 +141,18 @@ st.subheader("🌍 Confederation Strength")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    # Confederation win probabilities
-    confed_probs = predictions.groupby('confederation')['championship_probability_pct'].sum().reset_index()
-    confed_probs = confed_probs.sort_values('championship_probability_pct', ascending=False)
-    
-    fig_pie = px.pie(
-        confed_probs,
-        values='championship_probability_pct',
-        names='confederation',
-        title='Championship Probability by Confederation',
-        color_discrete_sequence=px.colors.qualitative.Set2
-    )
+    # Confederation win probabilities (safe check for column existence)
+    if 'confederation' in predictions.columns:
+        confed_probs = predictions.groupby('confederation')['championship_probability_pct'].sum().reset_index()
+        confed_probs = confed_probs.sort_values('championship_probability_pct', ascending=False)
+        
+        fig_pie = px.pie(
+            confed_probs,
+            values='championship_probability_pct',
+            names='confederation',
+            title='Championship Probability by Confederation',
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
     
     fig_pie.update_layout(
         height=350,
