@@ -153,15 +153,17 @@ with col1:
             title='Championship Probability by Confederation',
             color_discrete_sequence=px.colors.qualitative.Set2
         )
-    
-    fig_pie.update_layout(
-        height=350,
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff', size=11),
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    
-    st.plotly_chart(fig_pie, use_container_width=True)
+        
+        fig_pie.update_layout(
+            height=350,
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#ffffff', size=11),
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("⚠️ Confederation data not available for visualization")
 
 with col2:
     # Average ELO by confederation
