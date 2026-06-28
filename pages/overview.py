@@ -90,12 +90,11 @@ with col1:
     display_df = top_16[display_cols].copy()
     display_df.columns = ['Rank', 'Team', 'Group', 'Win %', 'ELO', 'Value (€B)', 'Tier']
     
+    # Simple formatting without background_gradient (requires matplotlib)
     st.dataframe(
-        display_df.style.format({
+        display_df.format({
             'Win %': '{:.2f}%'
-        }).background_gradient(
-            subset=['Win %'], cmap='Blues'
-        ),
+        }),
         use_container_width=True,
         hide_index=True,
         height=500

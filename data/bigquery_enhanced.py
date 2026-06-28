@@ -183,12 +183,17 @@ def get_team_attributes() -> pd.DataFrame:
         goalkeeper_save_rate, avg_club_last10_points_per_match,
         real_player_performance_score
     FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.ml_fc_real_hybrid_team_attributes_vfc_2`
+    WHERE vfc2_hybrid_power_score IS NOT NULL
     ORDER BY vfc2_hybrid_power_score DESC
     """
     try:
-        return _execute_readonly_query(query)
+        result = _execute_readonly_query(query)
+        # Clear cache to ensure fresh data
+        st.cache_data.clear()
+        return result
     except Exception as e:
-        st.error(f"Team attributes error: {e}")
+        st.error(f"Team attributes query error: {str(e)[:200]}")
+        # Return empty DataFrame instead of crashing
         return pd.DataFrame()
 
 # ============================================================================
