@@ -248,7 +248,6 @@ def get_players(limit: int = 500) -> pd.DataFrame:
         st.error(f"Players query error: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=CACHE_TTL_PLAYERS)
 @st.cache_data(ttl=600)
 def get_player_tournament_stats() -> pd.DataFrame:
     """
@@ -257,6 +256,7 @@ def get_player_tournament_stats() -> pd.DataFrame:
 
     Returns DataFrame with: player_name, wc26_goals, wc26_assists
     """
+    # 1) Live ESPN fetch
     try:
         import requests as req
         url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?dates=20260611-20260701'
@@ -269,29 +269,152 @@ def get_player_tournament_stats() -> pd.DataFrame:
                     athlete = leader.get('athlete', {})
                     name = athlete.get('displayName')
                     value = leader.get('value', 0)
+                    if not name:
+                        continue
                     if name not in players:
                         players[name] = {'player_name': name, 'wc26_goals': 0, 'wc26_assists': 0}
-                    if 'goals' in stat.get('name', ''):
+                    stat_name = (stat.get('name') or '').lower()
+                    if 'goal' in stat_name:
                         players[name]['wc26_goals'] = int(value or 0)
-                    elif 'assists' in stat.get('name', ''):
+                    elif 'assist' in stat_name:
                         players[name]['wc26_assists'] = int(value or 0)
             if players:
-                return pd.DataFrame(list(players.values()))
+                df_live = pd.DataFrame(list(players.values()))
+                return _enrich_player_stats(df_live)
     except Exception:
         pass
 
-    # Fallback: cached BigQuery table
+    # 2) Fallback: cached BigQuery table
     try:
         query = f"""
         SELECT player_name, wc26_goals, wc26_assists
         FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.raw_wc26_player_stats_espn`
-        WHERE wc26_goals IS NOT NULL AND wc26_assists IS NOT NULL
         ORDER BY wc26_goals DESC, wc26_assists DESC
         """
-        return _execute_readonly_query(query)
+        return _enrich_player_stats(_execute_readonly_query(query))
     except Exception as e:
         st.warning(f"Live player stats fetch failed, using fallback: {e}")
         return pd.DataFrame(columns=['player_name', 'wc26_goals', 'wc26_assists'])
+
+
+# Public-source fallback metadata for tournament players missing from club-season view.
+_FALLBACK_PLAYER_META = {
+    'Lionel Messi': {'nation_code': 'ARG', 'position': 'FW', 'club_team': 'Inter Miami', 'league': 'MLS'},
+    'Vinícius Júnior': {'nation_code': 'BRA', 'position': 'FW', 'club_team': 'Real Madrid', 'league': 'ESP'},
+    'Ismaïla Sarr': {'nation_code': 'SEN', 'position': 'FW', 'club_team': 'Monaco', 'league': 'FRA'},
+    'Julián Quiñones': {'nation_code': 'MEX', 'position': 'FW', 'club_team': 'Club América', 'league': 'MEX'},
+    'Crysencio Summerville': {'nation_code': 'NED', 'position': 'FW', 'club_team': 'Southampton', 'league': 'ENG'},
+    'Leandro Trossard': {'nation_code': 'BEL', 'position': 'FW', 'club_team': 'Arsenal', 'league': 'ENG'},
+    'Jude Bellingham': {'nation_code': 'ENG', 'position': 'MF', 'club_team': 'Real Madrid', 'league': 'ESP'},
+    'Ayase Ueda': {'nation_code': 'JPN', 'position': 'FW', 'club_team': 'Feyenoord', 'league': 'NED'},
+    'Daichi Kamada': {'nation_code': 'JPN', 'position': 'MF', 'club_team': 'Crystal Palace', 'league': 'ENG'},
+    'Yasin Ayari': {'nation_code': 'NOR', 'position': 'MF', 'club_team': 'Brighton', 'league': 'ENG'},
+    'Youri Tielemans': {'nation_code': 'BEL', 'position': 'MF', 'club_team': 'Aston Villa', 'league': 'ENG'},
+    'Pape Gueye': {'nation_code': 'SEN', 'position': 'MF', 'club_team': 'Marseille', 'league': 'FRA'},
+    'Nicolas Pépé': {'nation_code': 'CIV', 'position': 'FW', 'club_team': 'Trabzonspor', 'league': 'TUR'},
+    'Anthony Elanga': {'nation_code': 'SWE', 'position': 'FW', 'club_team': 'Nottingham Forest', 'league': 'ENG'},
+    'Bradley Barcola': {'nation_code': 'FRA', 'position': 'FW', 'club_team': 'Paris Saint-Germain', 'league': 'FRA'},
+    'Amad Diallo': {'nation_code': 'CIV', 'position': 'FW', 'club_team': 'Manchester United', 'league': 'ENG'},
+    'Romelu Lukaku': {'nation_code': 'BEL', 'position': 'FW', 'club_team': 'Napoli', 'league': 'ITA'},
+    'Ramin Rezaeian': {'nation_code': 'IRN', 'position': 'DF', 'club_team': 'Kazma SC', 'league': 'KUW'},
+    'Cristiano Ronaldo': {'nation_code': 'POR', 'position': 'FW', 'club_team': 'Al-Nassr', 'league': 'KSA'},
+    'Maxi Araújo': {'nation_code': 'URU', 'position': 'DF', 'club_team': 'Toluca', 'league': 'MEX'},
+    'Raúl Jiménez': {'nation_code': 'MEX', 'position': 'FW', 'club_team': 'Fulham', 'league': 'ENG'},
+    'Mikel Oyarzabal': {'nation_code': 'ESP', 'position': 'FW', 'club_team': 'Real Sociedad', 'league': 'ESP'},
+    'Riyad Mahrez': {'nation_code': 'ALG', 'position': 'FW', 'club_team': 'Al-Ahli', 'league': 'KSA'},
+    'Daniel Muñoz': {'nation_code': 'COL', 'position': 'DF', 'club_team': 'Crystal Palace', 'league': 'ENG'},
+    'Rubén Vargas': {'nation_code': 'SUI', 'position': 'FW', 'club_team': 'Augsburg', 'league': 'GER'},
+    'Cyle Larin': {'nation_code': 'CAN', 'position': 'FW', 'club_team': 'RCD Espanyol', 'league': 'ESP'},
+    'Habib Diarra': {'nation_code': 'SEN', 'position': 'MF', 'club_team': 'Southampton', 'league': 'ENG'},
+    'Ermin Mahmic': {'nation_code': 'BIH', 'position': 'FW', 'club_team': 'FK Tuzla City', 'league': 'BIH'},
+    'Yan Diomande': {'nation_code': 'CIV', 'position': 'MF', 'club_team': 'Le Havre', 'league': 'FRA'},
+    'Felix Nmecha': {'nation_code': 'GER', 'position': 'MF', 'club_team': 'Borussia Dortmund', 'league': 'GER'},
+    'Elliot Anderson': {'nation_code': 'SCO', 'position': 'MF', 'club_team': 'Newcastle', 'league': 'ENG'},
+    'Keito Nakamura': {'nation_code': 'JPN', 'position': 'MF', 'club_team': 'Stade de Reims', 'league': 'FRA'},
+    'Alex Freeman': {'nation_code': 'USA', 'position': 'DF', 'club_team': 'Orlando City', 'league': 'USA'},
+    'Pedro Vite': {'nation_code': 'ECU', 'position': 'MF', 'club_team': 'Vancouver Whitecaps', 'league': 'USA'},
+    'Houssem Aouar': {'nation_code': 'ALG', 'position': 'MF', 'club_team': 'Roma', 'league': 'ITA'},
+    'Nathan Saliba': {'nation_code': 'CAN', 'position': 'MF', 'club_team': 'CF Montréal', 'league': 'USA'},
+    'Arthur Masuaku': {'nation_code': 'COD', 'position': 'DF', 'club_team': 'Lens', 'league': 'FRA'},
+    'Gabriel Magalhães': {'nation_code': 'BRA', 'position': 'DF', 'club_team': 'Arsenal', 'league': 'ENG'},
+    'Chancel Mbemba': {'nation_code': 'COD', 'position': 'DF', 'club_team': 'Lens', 'league': 'FRA'},
+    'Ermin Mahmic': {'nation_code': 'BIH', 'position': 'FW', 'club_team': 'FK Tuzla City', 'league': 'BIH'},
+    'Jan Paul van Hecke': {'nation_code': 'NED', 'position': 'DF', 'club_team': 'Brighton', 'league': 'ENG'},
+    'Chadi Riad': {'nation_code': 'MAR', 'position': 'DF', 'club_team': 'Real Betis', 'league': 'ESP'},
+    'Patrick Berg': {'nation_code': 'NOR', 'position': 'MF', 'club_team': 'FK Bodø/Glimt', 'league': 'NOR'},
+    'Hannibal Mejbri': {'nation_code': 'TUN', 'position': 'MF', 'club_team': 'Burnley', 'league': 'ENG'},
+    'Sead Kolašinac': {'nation_code': 'BIH', 'position': 'DF', 'club_team': 'Atalanta', 'league': 'ITA'},
+    'Iliman Ndiaye': {'nation_code': 'SEN', 'position': 'FW', 'club_team': 'Everton', 'league': 'ENG'},
+    'Moussa Niakhaté': {'nation_code': 'ALG', 'position': 'DF', 'club_team': 'Lens', 'league': 'FRA'},
+    'Marko Arnautovic': {'nation_code': 'AUT', 'position': 'FW', 'club_team': 'Inter Milan', 'league': 'ITA'},
+    'Brooklyn Ezeh': {'nation_code': 'GER', 'position': 'DF', 'club_team': 'Hamburger SV', 'league': 'GER'},
+    'Elijah Just': {'nation_code': 'NZL', 'position': 'FW', 'club_team': 'Horsens', 'league': 'DEN'},
+    'Folarin Balogun': {'nation_code': 'USA', 'position': 'FW', 'club_team': 'Monaco', 'league': 'FRA'},
+    'Johan Manzambi': {'nation_code': 'SUI', 'position': 'MF', 'club_team': 'Freiburg', 'league': 'GER'},
+    'Sadio Mané': {'nation_code': 'SEN', 'position': 'FW', 'club_team': 'Al-Nassr', 'league': 'KSA'},
+    'Denzel Dumfries': {'nation_code': 'NED', 'position': 'DF', 'club_team': 'Inter Milan', 'league': 'ITA'},
+    'Virgil van Dijk': {'nation_code': 'NED', 'position': 'DF', 'club_team': 'Liverpool', 'league': 'ENG'},
+    'Gonzalo Plata': {'nation_code': 'ECU', 'position': 'FW', 'club_team': 'Flamengo', 'league': 'BRA'},
+    'Timothy Weah': {'nation_code': 'USA', 'position': 'FW', 'club_team': 'Juventus', 'league': 'ITA'},
+    'Aaron Ramsey': {'nation_code': 'WAL', 'position': 'MF', 'club_team': 'Aston Villa', 'league': 'ENG'},
+    'Sardar Azmoun': {'nation_code': 'IRN', 'position': 'FW', 'club_team': 'Roma', 'league': 'ITA'},
+    'Alphonso Davies': {'nation_code': 'CAN', 'position': 'DF', 'club_team': 'Bayern Munich', 'league': 'GER'},
+    'Kylian Mbappé': {'nation_code': 'FRA', 'position': 'FW', 'club_team': 'Real Madrid', 'league': 'ESP'},
+    'Ousmane Dembélé': {'nation_code': 'FRA', 'position': 'FW', 'club_team': 'Paris Saint-Germain', 'league': 'FRA'},
+    'Harry Kane': {'nation_code': 'ENG', 'position': 'FW', 'club_team': 'Bayern Munich', 'league': 'GER'},
+    'Erling Haaland': {'nation_code': 'NOR', 'position': 'FW', 'club_team': 'Manchester City', 'league': 'ENG'},
+    'Mohamed Salah': {'nation_code': 'EGY', 'position': 'FW', 'club_team': 'Liverpool', 'league': 'ENG'},
+    'Bukayo Saka': {'nation_code': 'ENG', 'position': 'FW', 'club_team': 'Arsenal', 'league': 'ENG'},
+    'Lamine Yamal': {'nation_code': 'ESP', 'position': 'FW', 'club_team': 'Barcelona', 'league': 'ESP'},
+    'Pedri': {'nation_code': 'ESP', 'position': 'MF', 'club_team': 'Barcelona', 'league': 'ESP'},
+    'Frenkie de Jong': {'nation_code': 'NED', 'position': 'MF', 'club_team': 'Barcelona', 'league': 'ESP'},
+    'Rúben Dias': {'nation_code': 'POR', 'position': 'DF', 'club_team': 'Manchester City', 'league': 'ENG'},
+    'Bernardo Silva': {'nation_code': 'POR', 'position': 'MF', 'club_team': 'Manchester City', 'league': 'ENG'},
+    'João Félix': {'nation_code': 'POR', 'position': 'FW', 'club_team': 'Barcelona', 'league': 'ESP'},
+    'Takumi Minamino': {'nation_code': 'JPN', 'position': 'FW', 'club_team': 'Lille', 'league': 'FRA'},
+    'Ritsu Dōan': {'nation_code': 'JPN', 'position': 'MF', 'club_team': 'SC Freiburg', 'league': 'GER'},
+    'Takefusa Kubo': {'nation_code': 'JPN', 'position': 'FW', 'club_team': 'Real Sociedad', 'league': 'ESP'},
+    'Wataru Endo': {'nation_code': 'JPN', 'position': 'MF', 'club_team': 'Stuttgart', 'league': 'GER'},
+    'Daizen Maeda': {'nation_code': 'JPN', 'position': 'FW', 'club_team': 'Celtic', 'league': 'SCO'},
+    'Dominik Szoboszlai': {'nation_code': 'HUN', 'position': 'MF', 'club_team': 'Liverpool', 'league': 'ENG'},
+    'András Schäfer': {'nation_code': 'HUN', 'position': 'MF', 'club_team': 'Lech Poznań', 'league': 'POL'},
+    'Ademola Lookman': {'nation_code': 'NGA', 'position': 'FW', 'club_team': 'Atalanta', 'league': 'ITA'},
+    'Kelechi Iheanacho': {'nation_code': 'NGA', 'position': 'FW', 'club_team': 'Qarabağ', 'league': 'AZE'},
+    'Alex Iwobi': {'nation_code': 'NGA', 'position': 'MF', 'club_team': 'Fulham', 'league': 'ENG'},
+    'Ola Aina': {'nation_code': 'NGA', 'position': 'DF', 'club_team': 'Nottingham Forest', 'league': 'ENG'},
+    'Wilfred Ndidi': {'nation_code': 'NGA', 'position': 'MF', 'club_team': 'Leicester', 'league': 'ENG'},
+    'Milan Škriniar': {'nation_code': 'SVK', 'position': 'DF', 'club_team': 'Paris Saint-Germain', 'league': 'FRA'},
+    'Stanislav Lobotka': {'nation_code': 'SVK', 'position': 'MF', 'club_team': 'Napoli', 'league': 'ITA'},
+    'László Bénes': {'nation_code': 'SVK', 'position': 'MF', 'club_team': 'Union Berlin', 'league': 'GER'},
+}
+
+
+def _enrich_player_stats(df_stats: pd.DataFrame) -> pd.DataFrame:
+    """
+    Enrich ESPN/BQ tournament stats with public fallback player identity metadata
+    missing from the club-season view.
+    """
+    if df_stats.empty:
+        return df_stats
+
+    enriched = df_stats.copy()
+    for col, default in {
+        'nation_code': '',
+        'position': '',
+        'club_team': '',
+        'league': '',
+    }.items():
+        if col not in enriched.columns:
+            enriched[col] = default
+        else:
+            enriched[col] = enriched[col].fillna(default).replace('nan', default, regex=False)
+
+    for name, meta in _FALLBACK_PLAYER_META.items():
+        mask = enriched['player_name'].eq(name)
+        if mask.any():
+            for k, v in meta.items():
+                enriched.loc[enriched[k].astype(str).str.strip().eq('') & mask, k] = v
+    return enriched
 
 @st.cache_data(ttl=CACHE_TTL_PLAYERS)
 def get_player_percentiles() -> pd.DataFrame:
