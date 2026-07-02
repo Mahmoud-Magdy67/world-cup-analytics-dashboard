@@ -293,6 +293,7 @@ def get_player_tournament_stats() -> pd.DataFrame:
         st.warning(f"Live player stats fetch failed, using fallback: {e}")
         return pd.DataFrame(columns=['player_name', 'wc26_goals', 'wc26_assists'])
 
+@st.cache_data(ttl=CACHE_TTL_PLAYERS)
 def get_player_percentiles() -> pd.DataFrame:
     """
     Get player performance percentiles for radar charts.
