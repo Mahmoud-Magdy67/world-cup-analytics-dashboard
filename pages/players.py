@@ -64,7 +64,18 @@ merged_tournament = tournament_stats.merge(
     on='player_name',
     how='left'
 )
+
+# Ensure metadata is never missing for display
+for col in ['nation_code', 'position', 'club_team', 'league']:
+    if col not in merged_tournament.columns:
+        merged_tournament[col] = ''
+    merged_tournament[col] = merged_tournament[col].fillna('').replace('nan', '', regex=False)
+if 'minutes' not in merged_tournament.columns:
+    merged_tournament['minutes'] = 0
+merged_tournament['minutes'] = pd.to_numeric(merged_tournament['minutes'], errors='coerce').fillna(0).astype(int)
+
 merged_tournament['goal_contribution'] = merged_tournament['wc26_goals'] + merged_tournament['wc26_assists']
+merged_tournament['rank'] = range(1, len(merged_tournament) + 1)
 merged_tournament = merged_tournament.sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
 
 top10 = merged_tournament.head(10).copy()
@@ -82,7 +93,7 @@ with col3:
 with col4:
     st.metric("Goal Contributions", f"{int(merged_tournament['goal_contribution'].sum())}")
 with col5:
-    st.metric("Active Nations", f"{merged_tournament['nation_code'].nunique()}")
+    st.metric("Active Nations", f"{merged_tournament['nation_code'].replace('', pd.NA).dropna().nunique()}")
 
 # ============================================================================
 # WORLD CUP THEME HERO BANNER
@@ -197,9 +208,17 @@ st.markdown(
 
 rank_cols = ['player_name', 'nation_code', 'position', 'wc26_goals', 'wc26_assists']
 avail = [c for c in rank_cols if c in merged_tournament.columns]
-ranked = merged_tournament[avail].copy()
+ranked = merged_tournament[avail].copy().fillna('—').replace('', '—', regex=False)
+
+# Ensure required columns exist with safe display values
+for required in ['nation_code', 'position']:
+    if required not in ranked.columns:
+        ranked[required] = '—'
+    else:
+        ranked[required] = ranked[required].fillna('—').replace('', '—', regex=False)
+
 ranked['rank'] = range(1, len(ranked) + 1)
-ranked = ranked[['rank'] + avail]
+ranked = ranked[['rank'] + rank_cols]
 
 st.dataframe(
     ranked.head(50),
@@ -258,7 +277,7 @@ if len(dual) > 0:
         f"including {', '.join(dual['player_name'].head(3).tolist())}."
     )
 
-nation_by_nation = merged_tournament.groupby('nation_code').agg(
+nation_by_nation = merged_tournament[merged_tournament['nation_code'].ne('')].groupby('nation_code').agg(
     tgoals=('wc26_goals', 'sum'),
     tassists=('wc26_assists', 'sum')
 ).reset_index().sort_values('tgoals', ascending=False)
