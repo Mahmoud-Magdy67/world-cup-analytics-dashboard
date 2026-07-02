@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+import os
 from pages._shared_enhanced import load_custom_css, page_header, info_card
 from data.bigquery_enhanced import get_players, get_player_tournament_stats
 
@@ -77,6 +78,24 @@ merged_tournament['minutes'] = pd.to_numeric(merged_tournament['minutes'], error
 merged_tournament['goal_contribution'] = merged_tournament['wc26_goals'] + merged_tournament['wc26_assists']
 merged_tournament['rank'] = range(1, len(merged_tournament) + 1)
 merged_tournament = merged_tournament.sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
+
+# Build human-readable spotlight names for the public-source dataset where names appear
+# in fuller/middle-name form but are widely known by shorter display forms.
+# Strategy: use the last two tokens when they form a unique label in this dataset;
+# otherwise keep the full internal player_name to avoid collisions.
+_PS_FRAME = pd.read_csv(
+    os.path.join(os.path.dirname(__file__), '..', 'public_source', 'player_stats_mominullptr.csv')
+)
+_SPOTLIGHT_NAME = {}
+_candidates = {}
+for name in _PS_FRAME['player_name'].dropna().astype(str).tolist():
+    toks = name.strip().split()
+    cand = ' '.join(toks[-2:]) if len(toks) >= 2 else name
+    _candidates.setdefault(cand, []).append(name)
+for cand, names in _candidates.items():
+    if len(names) == 1:
+        _SPOTLIGHT_NAME[names[0]] = cand
+merged_tournament['spotlight_name'] = merged_tournament['player_name'].map(_SPOTLIGHT_NAME).fillna(merged_tournament['player_name'])
 
 top10 = merged_tournament.head(10).copy()
 
@@ -383,9 +402,9 @@ st.caption("*Derived metrics from tournament goals/assists for profile visualiza
 # ============================================================================
 # PLAYER SPOTLIGHT
 # ============================================================================
-sel = st.selectbox("🔎 Spotlight a Tournament Player", ["None"] + merged_tournament['player_name'].tolist())
+sel = st.selectbox("🔎 Spotlight a Tournament Player", ["None"] + merged_tournament['spotlight_name'].tolist())
 if sel != "None":
-    pstat = merged_tournament[merged_tournament['player_name'] == sel]
+    pstat = merged_tournament.loc[merged_tournament['spotlight_name'] == sel]
     if not pstat.empty:
         p = pstat.iloc[0]
         x, y, z = st.columns(3)
@@ -395,7 +414,7 @@ if sel != "None":
             st.metric("Assists", f"{int(p['wc26_assists'])}")
         with z:
             st.metric("Contributions", f"{int(p['goal_contribution'])}")
-        ctx_row = df[df['player_name'] == sel]
+        ctx_row = df[df['player_name'] == p['player_name']]
         if not ctx_row.empty:
             ctx = ctx_row.iloc[0]
             info_card("Squad Context",
