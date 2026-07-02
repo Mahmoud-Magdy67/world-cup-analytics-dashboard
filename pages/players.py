@@ -413,5 +413,5 @@ info_card(
     "WC 2026 Player Analytics",
     "All player numbers above are **tournament-only** from FIFA World Cup 2026 matches. "
     "Club season statistics are excluded to avoid mixing 2024–25 historical data with the current tournament. "
-    "Data source: ESPN FIFA World Cup statistics API + BigQuery cache (`raw_wc26_player_stats_espn`)."
+    "Data source: validated public WC 2026 dataset (`public_source/player_stats_mominullptr.csv`) with traceability note."
 )

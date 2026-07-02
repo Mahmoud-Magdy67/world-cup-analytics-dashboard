@@ -251,12 +251,35 @@ def get_players(limit: int = 500) -> pd.DataFrame:
 @st.cache_data(ttl=600)
 def get_player_tournament_stats() -> pd.DataFrame:
     """
-    Get World Cup 2026 tournament player stats from the live ESPN stats API,
-    with BigQuery fallback cache.
+    Get World Cup 2026 tournament player stats from the validated public CSV dataset.
+    Falls back to live ESPN stats API or ESPN BigQuery cache only if public CSV is unavailable.
 
     Returns DataFrame with: player_name, wc26_goals, wc26_assists
     """
-    # 1) Live ESPN fetch
+    base_dir = os.path.join(os.path.dirname(__file__), '..', 'public_source')
+    csv_candidates = ['player_stats_mominullptr.csv', 'player_stats.csv']
+    df = pd.DataFrame()
+    for name in csv_candidates:
+        path = os.path.join(base_dir, name)
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path)
+                if 'goals' in df.columns and 'assists' in df.columns and 'player_name' in df.columns:
+                    break
+            except Exception:
+                df = pd.DataFrame()
+    if df.empty:
+        df = pd.DataFrame()
+
+    if not df.empty:
+        out = pd.DataFrame({
+            'player_name': df['player_name'].astype(str),
+            'wc26_goals': pd.to_numeric(df['goals'], errors='coerce').fillna(0).clip(lower=0).astype(int),
+            'wc26_assists': pd.to_numeric(df['assists'], errors='coerce').fillna(0).clip(lower=0).astype(int),
+        })
+        return _enrich_player_stats(out).sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
+
+    # ESPN fallback
     try:
         import requests as req
         url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?dates=20260611-20260701'
@@ -280,11 +303,11 @@ def get_player_tournament_stats() -> pd.DataFrame:
                         players[name]['wc26_assists'] = int(value or 0)
             if players:
                 df_live = pd.DataFrame(list(players.values()))
-                return _enrich_player_stats(df_live)
+                return _enrich_player_stats(df_live).sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
     except Exception:
         pass
 
-    # 2) Fallback: cached BigQuery table
+    # ESPN BigQuery cache fallback
     try:
         query = f"""
         SELECT player_name, wc26_goals, wc26_assists
