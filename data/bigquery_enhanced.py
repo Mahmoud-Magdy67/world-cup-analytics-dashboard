@@ -249,6 +249,50 @@ def get_players(limit: int = 500) -> pd.DataFrame:
         return pd.DataFrame()
 
 @st.cache_data(ttl=CACHE_TTL_PLAYERS)
+@st.cache_data(ttl=600)
+def get_player_tournament_stats() -> pd.DataFrame:
+    """
+    Get World Cup 2026 tournament player stats from the live ESPN stats API,
+    with BigQuery fallback cache.
+
+    Returns DataFrame with: player_name, wc26_goals, wc26_assists
+    """
+    try:
+        import requests as req
+        url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?dates=20260611-20260701'
+        resp = req.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            players = {}
+            for stat in data.get('stats', []):
+                for leader in stat.get('leaders', []):
+                    athlete = leader.get('athlete', {})
+                    name = athlete.get('displayName')
+                    value = leader.get('value', 0)
+                    if name not in players:
+                        players[name] = {'player_name': name, 'wc26_goals': 0, 'wc26_assists': 0}
+                    if 'goals' in stat.get('name', ''):
+                        players[name]['wc26_goals'] = int(value or 0)
+                    elif 'assists' in stat.get('name', ''):
+                        players[name]['wc26_assists'] = int(value or 0)
+            if players:
+                return pd.DataFrame(list(players.values()))
+    except Exception:
+        pass
+
+    # Fallback: cached BigQuery table
+    try:
+        query = f"""
+        SELECT player_name, wc26_goals, wc26_assists
+        FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.raw_wc26_player_stats_espn`
+        WHERE wc26_goals IS NOT NULL AND wc26_assists IS NOT NULL
+        ORDER BY wc26_goals DESC, wc26_assists DESC
+        """
+        return _execute_readonly_query(query)
+    except Exception as e:
+        st.warning(f"Live player stats fetch failed, using fallback: {e}")
+        return pd.DataFrame(columns=['player_name', 'wc26_goals', 'wc26_assists'])
+
 def get_player_percentiles() -> pd.DataFrame:
     """
     Get player performance percentiles for radar charts.
