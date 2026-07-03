@@ -79,40 +79,9 @@ merged_tournament['goal_contribution'] = merged_tournament['wc26_goals'] + merge
 merged_tournament['rank'] = range(1, len(merged_tournament) + 1)
 merged_tournament = merged_tournament.sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
 
-# Build human-readable spotlight names for the public-source dataset.
-# Use explicit known overrides for high-profile players, then a safer
-# deterministic fallback to avoid odd truncations like "Andrés Messi".
-_PS_FRAME = pd.read_csv(
-    os.path.join(os.path.dirname(__file__), '..', 'public_source', 'player_stats_mominullptr.csv')
-)
-_KNOWN_DISPLAY = {
-    'Lionel Andrés Messi': 'Lionel Messi',
-    'Harry Edward Kane': 'Harry Kane',
-    'Masour Ousmane Dembele': 'Ousmane Dembélé',
-    'Hamed Mahrous Mohamed Salah': 'Mohamed Salah',
-    'Kylian Mbappe': 'Kylian Mbappé',
-    'Erling Braut Haaland': 'Erling Haaland',
-    'Johan Kula Manzambi': 'Johan Manzambi',
-    'Julián Andrés Quinones': 'Julián Quiñones',
-    'Virgil Van Dijk': 'Virgil van Dijk',
-    'Anass Salah Eddine': 'Anass Salah-Eddine',
-    'Zakaria Salah Zakaria': 'Zakaria Salah Zakaria',
-    'José Vinicius': 'José Vinicius',
-    'Cristiano Ronaldo': 'Cristiano Ronaldo',
-    'Ronaldo Cristiano Ronaldo': 'Cristiano Ronaldo',
-}
-
-def _safe_display(name: str) -> str:
-    if name in _KNOWN_DISPLAY:
-        return _KNOWN_DISPLAY[name]
-    toks = name.strip().split()
-    if len(toks) <= 2:
-        return name
-    # Prefer first + last unless the last two tokens look like a known short form.
-    return f"{toks[0]} {toks[-1]}"
-
-_SPOTLIGHT_NAME = {name: _safe_display(name) for name in _PS_FRAME['player_name'].dropna().astype(str).tolist()}
-merged_tournament['spotlight_name'] = merged_tournament['player_name'].map(_SPOTLIGHT_NAME).fillna(merged_tournament['player_name'])
+# Display names are now canonicalized upstream in get_players()
+# from openfootball Source of Truth. Keep spotlight_name as the UI column.
+merged_tournament['spotlight_name'] = merged_tournament['player_name']
 
 top10 = merged_tournament.head(10).copy()
 

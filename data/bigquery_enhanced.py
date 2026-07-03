@@ -283,6 +283,17 @@ def get_players(limit: int = 500) -> pd.DataFrame:
                 out = out.sort_values(['goals_num','assists_num','minutes_num'], ascending=[False,False,False]).reset_index(drop=True)
                 if limit and limit > 0:
                     out = out.head(limit)
+            # Canonicalize display names from openfootball Source of Truth
+            _ID_PATH = os.path.join(os.path.dirname(__file__), 'openfootball_identity.json')
+            if os.path.exists(_ID_PATH):
+                try:
+                    with open(_ID_PATH, 'r', encoding='utf-8') as _f:
+                        _ID = json.load(_f)
+                    _alias = _ID.get('name_alias') or {}
+                    if _alias:
+                        out['player_name'] = out['player_name'].astype(str).map(lambda n: _alias.get(n, n))
+                except Exception:
+                    pass
             return out
         except Exception:
             pass
