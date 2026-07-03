@@ -367,7 +367,9 @@ def get_player_tournament_stats() -> pd.DataFrame:
             'wc26_goals': pd.to_numeric(df['goals'], errors='coerce').fillna(0).clip(lower=0).astype(int),
             'wc26_assists': pd.to_numeric(df['assists'], errors='coerce').fillna(0).clip(lower=0).astype(int),
         })
-        return _enrich_player_stats(out).sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
+        out = _enrich_player_stats(out)
+        out = _apply_name_alias(out)
+        return out.sort_values(['wc26_goals', 'wc26_assists'], ascending=[False, False]).reset_index(drop=True)
 
     # ESPN fallback
     try:
@@ -500,6 +502,22 @@ _FALLBACK_PLAYER_META = {
     'Stanislav Lobotka': {'nation_code': 'SVK', 'position': 'MF', 'club_team': 'Napoli', 'league': 'ITA'},
     'László Bénes': {'nation_code': 'SVK', 'position': 'MF', 'club_team': 'Union Berlin', 'league': 'GER'},
 }
+
+
+def _apply_name_alias(df_stats: pd.DataFrame) -> pd.DataFrame:
+    if df_stats.empty or 'player_name' not in df_stats.columns:
+        return df_stats
+    try:
+        id_path = os.path.join(os.path.dirname(__file__), 'openfootball_identity.json')
+        with open(id_path, 'r', encoding='utf-8') as _f:
+            _ID = json.load(_f)
+        alias = _ID.get('name_alias') or {}
+        if alias:
+            df_stats = df_stats.copy()
+            df_stats['player_name'] = df_stats['player_name'].astype(str).map(lambda n: alias.get(n, n))
+    except Exception:
+        pass
+    return df_stats
 
 
 def _enrich_player_stats(df_stats: pd.DataFrame) -> pd.DataFrame:
