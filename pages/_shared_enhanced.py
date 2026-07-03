@@ -101,9 +101,9 @@ def load_custom_css():
     
     /* Buttons */
     .stButton > button {
-        background-color: #000000;
-        color: #ffffff !important;
-        border: none;
+        background-color: #ffffff;
+        color: #000000 !important;
+        border: 2px solid #000000;
         border-radius: 0px;
         padding: 0.5rem 1.5rem;
         font-size: 1.2rem !important;
