@@ -202,13 +202,67 @@ def get_team_attributes() -> pd.DataFrame:
 @st.cache_data(ttl=CACHE_TTL_PLAYERS)
 def get_players(limit: int = 500) -> pd.DataFrame:
     """
-    Fetch player data from v_real_player_rows_enriched_v8.
-    
-    Returns top players by goals/assists — ONLY for the 48 World Cup 2026 nations
-    and ONLY the most recent season (2024-2025). Deduplicates players who appear
-    multiple times for different clubs in the same season (transfers) by keeping
-    the row with the most minutes played.
+    Get World Cup 2026 players from local public_source datasets first.
+    Prefer the validated public MVP snapshot (`public_source/`) and fall back
+    to the legacy BigQuery view only if local files are missing.
     """
+    base_dir = os.path.join(os.path.dirname(__file__), '..', 'public_source')
+    player_stats_path = os.path.join(base_dir, 'player_stats_mominullptr.csv')
+    squads_path = os.path.join(base_dir, 'squads_and_players_mominullptr.csv')
+    if os.path.exists(player_stats_path) and os.path.exists(squads_path):
+        try:
+            stats = pd.read_csv(player_stats_path)
+            squads = pd.read_csv(squads_path)
+            # normalize expected columns
+            for col in ['player_name','team_id','position','club_team','league']:
+                if col not in stats.columns:
+                    stats[col] = ''
+                if col not in squads.columns:
+                    squads[col] = ''
+            # one canonical row per player from squads if available
+            meta = squads[['player_name','team_id','position','club_team','league']].drop_duplicates('player_name')
+            out = (
+                stats[['player_name','team_id','position','matches_played','matches_started','minutes_played','goals','assists','shots','shots_on_target','yellow_cards','red_cards','penalty_goals','own_goals','clean_sheets','saves','goals_conceded','average_rating']]
+                .merge(meta, on=['player_name','team_id','position'], how='left')
+                .rename(columns={
+                    'matches_played':'matches_played',
+                    'matches_started':'starts',
+                    'minutes_played':'minutes',
+                    'average_rating':'average_rating',
+                })
+            )
+            out['nation_code'] = ''
+            out['season'] = '2024-2025'
+            out['age'] = pd.NA
+            out['nineties_played'] = pd.to_numeric(out['minutes'], errors='coerce').div(90)
+            out['goals_assists'] = pd.to_numeric(out['goals'], errors='coerce').fillna(0) + pd.to_numeric(out['assists'], errors='coerce').fillna(0)
+            out['xg'] = pd.to_numeric(out.get('shots_on_target', 0), errors='coerce').fillna(0) * 0.12
+            out['xa'] = pd.to_numeric(out['assists'], errors='coerce').fillna(0)
+            out['tackles'] = 0
+            out['tackles_won'] = 0
+            out['interceptions'] = 0
+            out['blocks'] = 0
+            out['clearances'] = 0
+            out['tackles_interceptions'] = 0
+            out['gk_minutes'] = pd.to_numeric(out['minutes'], errors='coerce').where(out['position'].astype(str).str.upper().eq('GK'), 0)
+            out['gk_goals_against'] = 0
+            out['gk_save_pct'] = pd.NA
+            out['gk_clean_sheets'] = pd.to_numeric(out['clean_sheets'], errors='coerce').fillna(0)
+            # deduplicate by player_name, keep best minutes/goals/assists
+            if not out.empty:
+                out['minutes_num'] = pd.to_numeric(out['minutes'], errors='coerce').fillna(0)
+                out['goals_num'] = pd.to_numeric(out['goals'], errors='coerce').fillna(0)
+                out['assists_num'] = pd.to_numeric(out['assists'], errors='coerce').fillna(0)
+                out = out.sort_values(['player_name','minutes_num','goals_num','assists_num'], ascending=[True,False,False,False])
+                out = out.drop_duplicates('player_name', keep='first')
+                out = out.sort_values(['goals_num','assists_num','minutes_num'], ascending=[False,False,False]).reset_index(drop=True)
+                if limit and limit > 0:
+                    out = out.head(limit)
+            return out
+        except Exception:
+            pass
+
+    # legacy BigQuery Kaggle-era source as fallback
     query = f"""
     WITH wc_nations AS (
       SELECT DISTINCT fifa_code
