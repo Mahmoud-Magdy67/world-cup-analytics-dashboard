@@ -132,11 +132,11 @@ with c1:
     st.markdown("<h3 style='color: #C8102E; font-family: Bebas Neue; margin-top:15px;'>⚽ Top Scorers</h3>", unsafe_allow_html=True)
     fig_g = px.bar(
         top10.sort_values('wc26_goals', ascending=True),
-        x='wc26_goals', y='player_name',
+        x='wc26_goals', y='spotlight_name',
         orientation='h',
         color='position' if 'position' in top10.columns else None,
         color_discrete_sequence=FWC26_POSITION_COLORS,
-        labels={'wc26_goals': 'Goals', 'player_name': 'Player'},
+        labels={'wc26_goals': 'Goals', 'spotlight_name': 'Player'},
         text='wc26_goals'
     )
     fig_g.update_layout(
@@ -155,11 +155,11 @@ with c2:
     if hasattr(top10a, 'empty') and not top10a.empty:
         fig_a = px.bar(
             top10a.sort_values('wc26_assists', ascending=True),
-            x='wc26_assists', y='player_name',
+            x='wc26_assists', y='spotlight_name',
             orientation='h',
             color='position' if 'position' in top10a.columns else None,
             color_discrete_sequence=FWC26_POSITION_COLORS,
-            labels={'wc26_assists': 'Assists', 'player_name': 'Player'},
+            labels={'wc26_assists': 'Assists', 'spotlight_name': 'Player'},
             text='wc26_assists'
         )
         fig_a.update_layout(
@@ -183,11 +183,11 @@ st.markdown(
 )
 fig_top = go.Figure()
 fig_top.add_trace(go.Bar(
-    name='Goals', x=top10['player_name'], y=top10['wc26_goals'],
+    name='Goals', x=top10['spotlight_name'], y=top10['wc26_goals'],
     marker_color=FWC26_RED, text=top10['wc26_goals'], textposition='inside'
 ))
 fig_top.add_trace(go.Bar(
-    name='Assists', x=top10['player_name'], y=top10['wc26_assists'],
+    name='Assists', x=top10['spotlight_name'], y=top10['wc26_assists'],
     marker_color=FWC26_SILVER, text=top10['wc26_assists'], textposition='inside'
 ))
 fig_top.update_layout(
@@ -211,7 +211,7 @@ if not top10.empty:
     nation = star.get('nation_code', 'N/A')
     position = star.get('position', 'N/A')
     st.info(
-        f"**Tournament MVP Signal:** {star['player_name']} leads in **{int(star['wc26_goals'])} goal(s)** "
+        f"**Tournament MVP Signal:** {star.get('spotlight_name', star['player_name'])} leads in **{int(star['wc26_goals'])} goal(s)** "
         f"and **{int(star['wc26_assists'])} assist(s)** for a **{int(star['goal_contribution'])}-contribution** tournament tally. "
         f"Nation: **{nation}** · Position: **{position}**."
     )
@@ -225,7 +225,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-rank_cols = ['player_name', 'nation_code', 'position', 'wc26_goals', 'wc26_assists']
+rank_cols = ['spotlight_name', 'nation_code', 'position', 'wc26_goals', 'wc26_assists']
 avail = [c for c in rank_cols if c in merged_tournament.columns]
 ranked = merged_tournament[avail].copy().fillna('—').replace('', '—', regex=False)
 
@@ -243,7 +243,7 @@ st.dataframe(
     ranked.head(50),
     column_config={
         "rank": st.column_config.NumberColumn("#", format="%d"),
-        "player_name": st.column_config.TextColumn("Player"),
+        "spotlight_name": st.column_config.TextColumn("Player"),
         "nation_code": st.column_config.TextColumn("Nation"),
         "position": st.column_config.TextColumn("Position"),
         "wc26_goals": st.column_config.NumberColumn("WC26 Goals", format="%d"),
