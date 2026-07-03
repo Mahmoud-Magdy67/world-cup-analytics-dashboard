@@ -231,7 +231,32 @@ def get_players(limit: int = 500) -> pd.DataFrame:
                     'average_rating':'average_rating',
                 })
             )
-            out['nation_code'] = ''
+            # attach team context: nation_code from teams, plus club/league/position from squads
+            team_meta = pd.read_csv(os.path.join(base_dir, 'teams_mominullptr.csv'))
+            if 'fifa_code' not in team_meta.columns and 'team_code' in team_meta.columns:
+                team_meta = team_meta.rename(columns={'team_code': 'fifa_code'})
+            if 'team_id' in team_meta.columns and 'fifa_code' in team_meta.columns:
+                team_meta = team_meta[['team_id', 'fifa_code']].drop_duplicates('team_id')
+                out = out.merge(team_meta, on='team_id', how='left')
+            else:
+                out['nation_code'] = out.get('nation_code', '')
+            # fall back to squads metadata without wiping existing values from stats
+            meta = squads[['player_name','team_id','position','club_team']].copy()
+            for col in ['position','club_team']:
+                if col not in meta.columns:
+                    meta[col] = ''
+            meta = meta.drop_duplicates(['player_name','team_id'])
+            out = out.merge(meta, on=['player_name','team_id'], how='left', suffixes=('', '_sq'))
+            for col in ['position', 'club_team', 'league']:
+                real = col
+                if real not in out.columns and f"{real}_sq" in out.columns:
+                    out[real] = out[f"{real}_sq"]
+                elif real in out.columns:
+                    out[real] = out[real].fillna('').replace('nan', '', regex=False)
+                    if f"{real}_sq" in out.columns:
+                        out[real] = out[real].mask(out[real].eq(''), out[f"{real}_sq"].fillna(''))
+                        out = out.drop(columns=[f"{real}_sq"], errors='ignore')
+            out['nation_code'] = out.get('nation_code', '').fillna('').replace('nan', '', regex=False)
             out['season'] = '2024-2025'
             out['age'] = pd.NA
             out['nineties_played'] = pd.to_numeric(out['minutes'], errors='coerce').div(90)
