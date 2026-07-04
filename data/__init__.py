@@ -8,8 +8,6 @@ from .bigquery_enhanced import (
     get_stage_probabilities,
     get_tournament_overview,
     get_team_attributes,
-    get_group_standings,
-    get_match_predictions,
     get_model_methodology,
     get_data_quality_report,
 )
