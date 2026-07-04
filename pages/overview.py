@@ -309,12 +309,18 @@ else:
 st.divider()
 
 # ============================================================================
-# SCATTER PLOT: VALUE VS WIN PROBABILITY
+# SCATTER PLOT: VALUE VS WIN PROBABILITY (Alive Teams Only)
 # ============================================================================
-st.subheader("💰 Market Value vs. Win Probability")
+st.subheader("💰 Market Value vs. Win Probability — Alive Teams Only")
 
-if 'total_market_value_eur' in filtered_preds.columns and 'championship_probability_pct' in filtered_preds.columns:
-    scatter_df = filtered_preds.copy()
+# Filter to alive teams only
+if 'tournament_status' in filtered_preds.columns:
+    alive_scatter = filtered_preds[filtered_preds['tournament_status'].str.startswith('Alive', na=False)].copy()
+else:
+    alive_scatter = filtered_preds.copy()
+
+if 'total_market_value_eur' in alive_scatter.columns and 'championship_probability_pct' in alive_scatter.columns:
+    scatter_df = alive_scatter.copy()
     scatter_df['market_value_b'] = scatter_df['total_market_value_eur'] / 1e9
     
     # Highlight logic
@@ -330,7 +336,7 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
         size='elo_rating',
         color='Color_Group' if highlight_team != "None" else 'confederation',
         color_discrete_map={'Highlighted': '#FF004D', 'Standard': '#A0A0A0'} if highlight_team != "None" else None,
-        title="Bubble Size = Overall Team Strength (ELO)",
+        title="Bubble Size = Overall Team Strength (ELO) — 16 Alive Teams Only",
         labels={
             'market_value_b': 'Market Value (€ Billions)', 
             'championship_probability_pct': 'Win Probability (%)',
@@ -358,9 +364,9 @@ if 'total_market_value_eur' in filtered_preds.columns and 'championship_probabil
     )
     st.plotly_chart(fig_scatter, width='stretch')
     
-    info_card("AI Insight", "While squad market value provides a baseline for quality, tactical cohesion and historical ELO (bubble size) are the true differentiators. Teams above the diagonal trend line are 'overperforming' their financial valuation.")
-
-st.divider()
+    info_card("AI Insight", "While squad market value provides a baseline for quality, tactical cohesion and historical ELO (bubble size) are the true differentiators. Teams above the diagonal trend line are 'overperforming' their financial valuation. Eliminated teams (0% probability) are excluded.")
+else:
+    st.info("⚠️ Required columns missing for scatter plot generation.")
 
 # ============================================================================
 # TOURNAMENT CONTEXT & HOSTING IMPACT
