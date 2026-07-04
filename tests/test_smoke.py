@@ -29,5 +29,5 @@ def test_data_functions_return_dataframes():
     assert status.mode in ["bigquery", "mock", "bigquery_error"]
     # If BigQuery connected, verify table counts
     if status.bigquery_enabled and status.tables_available:
-        assert status.tables_available.get("wc26_dashboard_comprehensive_v15_live", 0) == 48
+        assert status.tables_available.get("wc26_dashboard_v16_live_july4", 0) == 48
         assert status.tables_available.get("v_winner_prediction_dashboard_v15_live_10m", 0) == 48

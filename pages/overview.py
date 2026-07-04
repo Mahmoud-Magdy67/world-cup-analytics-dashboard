@@ -118,12 +118,36 @@ with col_k4:
 st.write("") # Spacing
 
 # ============================================================================
-# TREEMAP: TOURNAMENT LANDSCAPE
+# LIVE TOURNAMENT STATUS BANNER
 # ============================================================================
-st.subheader("🗺️ Tournament Landscape (Probability Distribution)")
+st.markdown("### 🔴 LIVE TOURNAMENT STATUS — Updated July 4, 2026 (Round of 16 Begins Today)")
 
-if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.columns and 'elo_rating' in filtered_preds.columns:
-    tree_df = filtered_preds.copy()
+status_col1, status_col2, status_col3 = st.columns(3)
+with status_col1:
+    st.metric(label="🏆 Teams Alive (R16)", value=16, delta="8 R16 matches today", delta_color="normal")
+with status_col2:
+    st.metric(label="❌ Eliminated (R32)", value=16, delta="Including Germany, Netherlands, Ghana", delta_color="inverse")
+with status_col3:
+    st.metric(label="❌ Eliminated (Group Stage)", value=16, delta="Including Türkiye, Uruguay, Iran", delta_color="inverse")
+
+st.info("📊 **Predictions updated through Round of 32 (July 4, 2026).** Championship probabilities recalculated for the 16 remaining teams. Eliminated teams show 0% probability.")
+st.caption("Next update: After today's Round of 16 matches (Canada vs Morocco, Paraguay vs France, Colombia 1-0 Ghana ✅)")
+
+st.divider()
+
+# ============================================================================
+# TREEMAP: TOURNAMENT LANDSCAPE (Alive Teams Only)
+# ============================================================================
+st.subheader("🗺️ Tournament Landscape (Probability Distribution — Alive Teams Only)")
+
+# Filter to only alive teams for the treemap (eliminated teams have 0% probability)
+if 'tournament_status' in filtered_preds.columns:
+    alive_preds = filtered_preds[filtered_preds['tournament_status'].str.startswith('Alive', na=False)].copy()
+else:
+    alive_preds = filtered_preds.copy()
+
+if 'confederation' in alive_preds.columns and 'group_name' in alive_preds.columns and 'elo_rating' in alive_preds.columns:
+    tree_df = alive_preds.copy()
     tree_df['Tournament'] = 'World Cup 2026'
     
     fig_tree = px.treemap(
@@ -132,15 +156,16 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
         values='elo_rating',
         color='championship_probability_pct',
         color_continuous_scale=['#FFFFFF', '#00F0FF', '#7B00FF', '#FF004D'],
-        hover_data=['championship_probability_pct', 'elo_rating', 'total_market_value_eur'],
-        title="World Cup Power Hierarchy (Box Size = Team Strength, Color = Tournament Win Probability)",
+        hover_data=['championship_probability_pct', 'elo_rating', 'total_market_value_eur', 'tournament_status'],
+        title="World Cup Power Hierarchy — Alive Teams Only (Box Size = Team Strength, Color = Tournament Win Probability)",
         labels={
             'championship_probability_pct': 'Win Probability (%)',
             'elo_rating': 'Overall Team Strength (ELO)',
             'total_market_value_eur': 'Squad Value (€)',
             'confederation': 'Confederation',
             'group_name': 'Group',
-            'team_name': 'Team'
+            'team_name': 'Team',
+            'tournament_status': 'Status'
         }
     )
     fig_tree.update_layout(
@@ -152,7 +177,7 @@ if 'confederation' in filtered_preds.columns and 'group_name' in filtered_preds.
     
     # AI Insight
     best_confed = tree_df.groupby('confederation')['championship_probability_pct'].mean().idxmax()
-    info_card("AI Insight", f"The treemap reveals the concentration of power. Based on average win probability, the {best_confed} confederation dominates the prediction model, while group distributions show highly asymmetrical difficulty levels.")
+    info_card("AI Insight", f"The treemap reveals the concentration of power among the 16 alive teams. Based on average win probability, the {best_confed} confederation dominates the updated prediction model. Eliminated teams (Group Stage and R32) are excluded as their championship probability is 0%.")
 else:
     st.info("⚠️ Required columns for landscape treemap are missing.")
 
@@ -163,7 +188,7 @@ st.divider()
 # ============================================================================
 st.subheader("📋 Executive Probability Board")
 
-disp_cols = ['winner_rank', 'team_name', 'confederation', 'championship_probability_pct', 'final_probability_pct', 'elo_rating', 'total_market_value_eur']
+disp_cols = ['winner_rank', 'team_name', 'confederation', 'tournament_status', 'championship_probability_pct', 'final_probability_pct', 'elo_rating', 'total_market_value_eur']
 exist_disp = [c for c in disp_cols if c in filtered_preds.columns]
 
 if exist_disp:
@@ -171,12 +196,22 @@ if exist_disp:
     max_prob = df_table['championship_probability_pct'].max() if 'championship_probability_pct' in df_table else 100
     max_final = df_table['final_probability_pct'].max() if 'final_probability_pct' in df_table else 100
     
+    # Add status styling
+    def highlight_status(row):
+        if 'tournament_status' in row:
+            if row['tournament_status'] and 'Eliminated' in str(row['tournament_status']):
+                return ['background-color: #ffe6e6'] * len(row)
+            elif row['tournament_status'] and 'Alive' in str(row['tournament_status']):
+                return ['background-color: #e6ffe6'] * len(row)
+        return [''] * len(row)
+    
     st.dataframe(
-        df_table,
+        df_table.style.apply(highlight_status, axis=1),
         column_config={
             "winner_rank": st.column_config.NumberColumn("Rank", format="%d"),
             "team_name": st.column_config.TextColumn("Team"),
             "confederation": st.column_config.TextColumn("Confederation"),
+            "tournament_status": st.column_config.TextColumn("Tournament Status"),
             "championship_probability_pct": st.column_config.ProgressColumn(
                 "Win Probability",
                 help="Probability of winning the tournament",
@@ -204,11 +239,11 @@ if exist_disp:
         },
         hide_index=True,
         width='stretch',
-        height=400
+        height=500
     )
     
     top_3 = df_table['team_name'].head(3).tolist() if len(df_table) >= 3 else ["the top teams"]
-    info_card("AI Insight", f"The simulation heavily favors {', '.join(top_3[:-1])} and {top_3[-1]}. Notice how ELO ratings strongly correlate with progression probabilities, overriding squad market value in several key matchups.")
+    info_card("AI Insight", f"The simulation heavily favors {', '.join(top_3[:-1])} and {top_3[-1]}. Notice how ELO ratings strongly correlate with progression probabilities, overriding squad market value in several key matchups. Teams with 'Eliminated' status have 0% championship probability.")
 
 st.divider()
 

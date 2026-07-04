@@ -86,7 +86,7 @@ def get_data_source_status() -> DataSourceStatus:
             # Get table metadata for key tables
             tables_info = {}
             table_queries = {
-                'wc26_dashboard_comprehensive_v15_live': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`',
+                'wc26_dashboard_v16_live_july4': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_v16_live_july4`',
                 'v_winner_prediction_dashboard_v15_live_10m': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`',
                 'v_real_player_rows_enriched_v8': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`',
                 'v_team_schedule': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_team_schedule`',
@@ -145,9 +145,10 @@ def get_tournament_overview() -> pd.DataFrame:
 @st.cache_data(ttl=CACHE_TTL_TEAMS)
 def get_teams() -> pd.DataFrame:
     """
-    Fetch comprehensive team data from wc26_dashboard_comprehensive_v15_live.
+    Fetch comprehensive team data from wc26_dashboard_v16_live_july4.
     
-    Returns all 48 teams with predictions, ELO, market value, and group stats.
+    Returns all 48 teams with UPDATED predictions (post R32), ELO, market value, 
+    group stats, and tournament status (alive/eliminated).
     """
     query = f"""
     SELECT 
@@ -155,8 +156,8 @@ def get_teams() -> pd.DataFrame:
         elo_rating, total_market_value_eur, contender_tier,
         round32_probability, round16_probability, quarterfinal_probability,
         semifinal_probability, final_probability,
-        avg_group_points, avg_group_goal_difference, avg_group_goals_for
-    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`
+        elimination_stage, tournament_status
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_v16_live_july4`
     ORDER BY winner_rank
     """
     try:
@@ -396,27 +397,28 @@ def get_stage_probabilities() -> pd.DataFrame:
         st.error(f"Stage probabilities error: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=CACHE_TTL_PREDICTIONS)
-def get_group_standings() -> pd.DataFrame:
+@st.cache_data(ttl=CACHE_TTL_TEAMS)
+def get_teams() -> pd.DataFrame:
     """
-    Get expected group standings from ml_group_expected_standings_v15_live_10m.
+    Fetch comprehensive team data from wc26_dashboard_v16_live_july4.
     
-    Returns qualification probabilities and expected points for all teams.
+    Returns all 48 teams with predictions, ELO, market value, and group stats.
+    Includes new columns: elimination_stage, tournament_status
     """
     query = f"""
     SELECT 
-        team_name, group_name,
-        avg_group_points, avg_group_goal_difference, avg_group_goals_for,
-        group_winner_probability_pct, group_runner_up_probability_pct,
-        group_third_probability_pct, group_fourth_probability_pct,
-        round32_probability_pct
-    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.ml_group_expected_standings_v15_live_10m`
-    ORDER BY group_name, avg_group_points DESC
+        team_name, group_name, winner_rank, championship_probability,
+        elo_rating, total_market_value_eur, contender_tier,
+        round32_probability, round16_probability, quarterfinal_probability,
+        semifinal_probability, final_probability,
+        elimination_stage, tournament_status
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_v16_live_july4`
+    ORDER BY winner_rank
     """
     try:
         return _execute_readonly_query(query)
     except Exception as e:
-        st.error(f"Group standings error: {e}")
+        st.error(f"Teams query error: {e}")
         return pd.DataFrame()
 
 # ============================================================================
@@ -434,7 +436,7 @@ def get_data_quality_report() -> Dict[str, Any]:
     
     quality_report = {}
     tables_to_check = [
-        'wc26_dashboard_comprehensive_v15_live',
+        'wc26_dashboard_v16_live_july4',
         'v_winner_prediction_dashboard_v15_live_10m',
         'v_real_player_rows_enriched_v8',
         'v_team_schedule',

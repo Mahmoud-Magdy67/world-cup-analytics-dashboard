@@ -63,7 +63,7 @@ def get_data_source_status() -> DataSourceStatus:
             # Get table metadata
             tables_info = {}
             table_queries = {
-                'wc26_dashboard_comprehensive_v15_live': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`',
+                'wc26_dashboard_v16_live_july4': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_v16_live_july4`',
                 'v_winner_prediction_dashboard_v15_live_10m': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_winner_prediction_dashboard_v15_live_10m`',
                 'v_real_player_rows_enriched_v8': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_real_player_rows_enriched_v8`',
                 'v_team_schedule': f'SELECT COUNT(*) as cnt FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.v_team_schedule`',
@@ -102,7 +102,7 @@ def _execute_readonly_query(query: str) -> pd.DataFrame:
 
 def get_teams() -> pd.DataFrame:
     """
-    Fetch teams data from wc26_dashboard_comprehensive_v15_live.
+    Fetch teams data from wc26_dashboard_v16_live_july4.
     
     SQL Query:
     SELECT 
@@ -110,15 +110,15 @@ def get_teams() -> pd.DataFrame:
         elo_rating, total_market_value_eur, contender_tier,
         round32_probability, round16_probability, quarterfinal_probability,
         semifinal_probability, final_probability,
-        avg_group_points, avg_group_goal_difference, avg_group_goals_for
-    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.wc26_dashboard_comprehensive_v15_live`
+        elimination_stage, tournament_status
+    FROM `project-2f1e456e-b1be-4551-92b.worldcup_2026.wc26_dashboard_v16_live_july4`
     ORDER BY winner_rank
-    
+
     Returns columns: team_name, group_name, winner_rank, championship_probability, elo_rating,
                      total_market_value_eur, contender_tier, round32_probability, round16_probability,
                      quarterfinal_probability, semifinal_probability, final_probability,
-                     avg_group_points, avg_group_goal_difference, avg_group_goals_for
-    
+                     elimination_stage, tournament_status
+
     Expected rows: 48 teams
     """
     query = f"""
@@ -127,8 +127,8 @@ def get_teams() -> pd.DataFrame:
         elo_rating, total_market_value_eur, contender_tier,
         round32_probability, round16_probability, quarterfinal_probability,
         semifinal_probability, final_probability,
-        avg_group_points, avg_group_goal_difference, avg_group_goals_for
-    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_comprehensive_v15_live`
+        elimination_stage, tournament_status
+    FROM `{GCP_PROJECT_ID}.{BIGQUERY_DATASET}.wc26_dashboard_v16_live_july4`
     ORDER BY winner_rank
     """
     try:
