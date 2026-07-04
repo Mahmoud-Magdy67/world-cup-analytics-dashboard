@@ -264,7 +264,7 @@ if exist_disp:
 st.divider()
 
 # ============================================================================
-# ADVANCED HEATMAP: KNOCKOUT PROGRESSION
+# ADVANCED HEATMAP: KNOCKOUT PROGRESSION (Top 8 Alive Teams Only)
 # ============================================================================
 st.subheader("🔥 Projected Knockout Progression Heatmap")
 
@@ -277,9 +277,15 @@ prob_cols = {
 }
 heat_cols = [c for c in prob_cols.keys() if c in filtered_preds.columns]
 
-if heat_cols and 'team_name' in filtered_preds.columns:
-    # Top 15 teams for heatmap to avoid clutter
-    heat_df = filtered_preds.head(15).set_index('team_name')[heat_cols]
+# Filter to only alive teams (tournament_status starts with 'Alive'), then take top 8 by winner_rank
+if 'tournament_status' in filtered_preds.columns:
+    alive_preds = filtered_preds[filtered_preds['tournament_status'].str.startswith('Alive', na=False)].copy()
+else:
+    alive_preds = filtered_preds.copy()
+
+if heat_cols and 'team_name' in alive_preds.columns and not alive_preds.empty:
+    # Top 8 alive teams by winner_rank (current standings)
+    heat_df = alive_preds.nsmallest(8, 'winner_rank').set_index('team_name')[heat_cols]
     heat_df.columns = [prob_cols[c] for c in heat_cols]
     
     fig_heat = px.imshow(
@@ -288,7 +294,7 @@ if heat_cols and 'team_name' in filtered_preds.columns:
         aspect="auto", 
         color_continuous_scale=['#FFFFFF', '#00FF00', '#00F0FF', '#7B00FF', '#FF004D'],
         labels=dict(x="Tournament Stage", y="Team", color="Probability (%)"),
-        title="Projected Tournament Survival Rates (Top 15 Teams)"
+        title="Projected Knockout Progression — Top 8 Alive Teams (Quarter-Finalists)"
     )
     fig_heat.update_layout(
         paper_bgcolor='#ffffff',
@@ -296,7 +302,7 @@ if heat_cols and 'team_name' in filtered_preds.columns:
         font=dict(color='#000000', family='Bebas Neue')
     )
     st.plotly_chart(fig_heat, width='stretch')
-    info_card("AI Insight", "The progression heatmap illustrates the 'attrition rate' of top teams. Sharp drop-offs between the Quarter-Finals and Semi-Finals indicate structural bottlenecks where tournament favorites are projected to eliminate each other.")
+    info_card("AI Insight", "The heatmap shows projected survival rates for the 8 teams currently projected to reach the Quarter-Finals. Notice the sharp attrition from R16→QF→SF — only the elite separate themselves in the later stages. Eliminated teams (0% probability) are excluded.")
 else:
     st.info("⚠️ Stage probability columns missing for heatmap generation.")
 
