@@ -1,5 +1,5 @@
 # data package init
-from .athena_enhanced import (
+from .athena import (
     get_data_source_status,
     get_teams,
     get_players,

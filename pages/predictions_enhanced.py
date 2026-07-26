@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from pages._shared_enhanced import *
-from data.athena_enhanced import *
+from data.athena import *
 
 load_custom_css()
 
@@ -210,4 +210,4 @@ with st.expander("📖 Model Methodology"):
 st.divider()
 
 status = get_data_source_status()
-st.caption(f"📊 Data source: BigQuery | Last refresh: {status.last_refresh}")
+st.caption(f"📊 Data source: AWS Athena | Last refresh: {status.last_refresh}")

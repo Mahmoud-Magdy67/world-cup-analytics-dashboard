@@ -29,7 +29,7 @@ with st.spinner("Loading match data..."):
     predictions_df = get_match_predictions()
 
 if matches_df.empty:
-    st.error("Failed to load match data from BigQuery.")
+    st.error("Failed to load match data from AWS Athena.")
     st.stop()
 
 # Ensure proper data types
@@ -667,5 +667,5 @@ if 'match_number' in filtered.columns:
 else:
     st.info("Match numbering system not available for data quality check.")
 
-st.caption("Data sourced from BigQuery view: v_team_schedule | Last updated: " + 
-           pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"))
+st.caption("Data sourced from AWS Athena table: matches | Last updated: " + 
+          (matches_df['last_updated'].max().strftime('%Y-%m-%d') if 'last_updated' in matches_df.columns else 'N/A'))

@@ -9,13 +9,13 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from pages._shared_enhanced import load_custom_css, page_header, info_card
-from data.bigquery import (
-    ALLOWED_BIGQUERY_DATASET_PLACEHOLDERS, 
-    GCP_PROJECT_ID, 
-    BIGQUERY_DATASET, 
+from data.athena import (
+    ALLOWED_ATHENA_DATASET_PLACEHOLDERS as ALLOWED_BIGQUERY_DATASET_PLACEHOLDERS,
+    AWS_REGION as GCP_PROJECT_ID,
+    ATHENA_DATABASE as BIGQUERY_DATASET,
     READ_ONLY_RULE
 )
-from data.bigquery_enhanced import get_data_source_status
+from data.athena import get_data_source_status
 
 # Apply CSS
 load_custom_css()
@@ -36,8 +36,8 @@ with st.spinner("Checking data connectivity..."):
 st.subheader("📊 Data Connection Status")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    status_color = "🟢" if status.bigquery_enabled else "🔴"
-    st.metric("BigQuery Connection", f"{status_color} {'Connected' if status.bigquery_enabled else 'Disconnected'}")
+    status_color = "🟢" if status.athena_enabled else "🔴"
+        st.metric("Athena Connection", f"{status_color} {'Connected' if status.athena_enabled else 'Disconnected'}")
 with c2:
     st.metric("Data Mode", status.mode)
 with c3:

@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from pages._shared_enhanced import *
-from data.athena_enhanced import *
+from data.athena import *
 
 # Load custom CSS
 load_custom_css()
@@ -31,7 +31,7 @@ with st.spinner("Loading tournament data..."):
     group_standings = get_group_standings()
 
 if teams.empty:
-    st.error("Failed to load tournament data. Please check BigQuery connection.")
+    st.error("Failed to load tournament data. Please check Athena connection.")
     st.stop()
 
 # ============================================================================
@@ -333,7 +333,7 @@ st.divider()
 # ============================================================================
 
 status = get_data_source_status()
-if status.bigquery_enabled:
-    st.caption(f"📊 Data source: BigQuery ({status.tables_available}) | Last refresh: {status.last_refresh}")
+if status.athena_enabled:
+    st.caption(f"📊 Data source: AWS Athena ({len(status.tables_available) if status.tables_available else 0} tables) | Last refresh: {status.last_refresh}")
 else:
     st.caption(f"⚠️ Data source: {status.note}")

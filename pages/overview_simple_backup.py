@@ -5,7 +5,7 @@ from pages._shared import *
 
 page_header('Tournament Overview', 'High-level tournament health, scoring trends, and leading contenders.')
 
-# Fetch all teams from BigQuery
+# Fetch all teams from AWS Athena
 df = get_teams()
 
 # KPI Cards

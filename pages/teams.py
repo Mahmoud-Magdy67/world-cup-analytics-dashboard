@@ -29,7 +29,7 @@ with st.spinner("Loading team metrics..."):
     team_attrs = get_team_attributes()
 
 if teams.empty or team_attrs.empty:
-    st.error("Failed to load team data from BigQuery.")
+    st.error("Failed to load team data from AWS Athena.")
     st.stop()
 
 # Merge data for comprehensive view
@@ -405,7 +405,7 @@ st.subheader("🏅 Tournament Progression Funnel")
 
 # Load predictions for stage probabilities
 try:
-    from data.athena_enhanced import get_predictions
+    from data.athena import get_predictions
     preds = get_predictions()
     if not preds.empty:
         funnel_stages = [

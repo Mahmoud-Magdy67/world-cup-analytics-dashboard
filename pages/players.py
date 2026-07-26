@@ -52,7 +52,7 @@ with st.spinner("Loading player metrics..."):
     tournament_stats = get_player_tournament_stats()
 
 if df.empty:
-    st.error("Failed to load player data from BigQuery.")
+    st.error("Failed to load player data from AWS Athena.")
     st.stop()
 
 if tournament_stats.empty:

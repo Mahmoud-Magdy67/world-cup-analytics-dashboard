@@ -31,7 +31,7 @@ with st.spinner("Loading executive analytics..."):
     stage_probs = get_stage_probabilities()
 
 if predictions.empty:
-    st.error("Failed to load prediction data. Please check BigQuery connection.")
+    st.error("Failed to load prediction data. Please check AWS Athena connection.")
     st.stop()
 
 # Merge tournament_status and elimination_stage from teams (v16 table) into predictions
