@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from pages._shared_enhanced import *
-from data.bigquery_enhanced import *
+from data.athena_enhanced import *
 
 load_custom_css()
 

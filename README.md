@@ -2,7 +2,7 @@
 
 **Production-Quality Football Intelligence Platform**
 
-A professional analytics dashboard powered by Google Cloud BigQuery, featuring Monte Carlo tournament simulations, comprehensive team/player analytics, and real-time predictions.
+A professional analytics dashboard powered by AWS Athena, featuring Monte Carlo tournament simulations, comprehensive team/player analytics, and real-time predictions.
 
 ---
 
@@ -37,7 +37,7 @@ A professional analytics dashboard powered by Google Cloud BigQuery, featuring M
 ## 🛠️ Tech Stack
 
 - **Frontend**: Streamlit (multi-page application)
-- **Database**: Google Cloud BigQuery
+- **Database**: AWS Athena
 - **Visualizations**: Plotly (interactive charts)
 - **Data Processing**: Pandas, NumPy
 - **Deployment**: Streamlit Cloud (via GitHub mirror)
@@ -47,7 +47,7 @@ A professional analytics dashboard powered by Google Cloud BigQuery, featuring M
 
 ## 📊 Data Sources
 
-### BigQuery Dataset: `worldcup_2026`
+### Athena Dataset: `worldcup_2026`
 
 **Key Tables & Views:**
 
@@ -75,7 +75,7 @@ A professional analytics dashboard powered by Google Cloud BigQuery, featuring M
 ### Prerequisites
 
 - Python 3.11+
-- Google Cloud credentials (BigQuery access)
+- AWS credentials (Athena access)
 - Streamlit Cloud account (for deployment)
 
 ### Local Development
@@ -94,8 +94,11 @@ A professional analytics dashboard powered by Google Cloud BigQuery, featuring M
 3. **Set environment variables:**
    ```bash
    # .env file
-   GCP_SERVICE_ACCOUNT_KEY=<base64-encoded-JSON-key>
-   GCP_PROJECT_ID=project-2f1e456e-b1be-4551-92b
+   AWS_ACCESS_KEY_ID=<your-aws-access-key>
+   AWS_SECRET_ACCESS_KEY=<your-aws-secret-key>
+   AWS_REGION=us-east-1
+   ATHENA_DATABASE=worldcup_2026
+   ATHENA_OUTPUT_BUCKET=aws-athena-query-results-worldcup
    ```
 
 4. **Run the dashboard:**
@@ -115,12 +118,11 @@ A professional analytics dashboard powered by Google Cloud BigQuery, featuring M
    ```toml
    # .streamlit/secrets.toml
    [credentials]
-   GCP_SERVICE_ACCOUNT_KEY = "<your-base64-key>"
-   GCP_PROJECT_ID = "project-2f1e456e-b1be-4551-92b"
-   
-   [google]
-   service_account_key = "<your-base64-key>"
-   project_id = "project-2f1e456e-b1be-4551-92b"
+   AWS_ACCESS_KEY_ID = "<your-aws-access-key>"
+   AWS_SECRET_ACCESS_KEY = "<your-aws-secret-key>"
+   AWS_REGION = "us-east-1"
+   ATHENA_DATABASE = "worldcup_2026"
+   ATHENA_OUTPUT_BUCKET = "aws-athena-query-results-worldcup"
    ```
 
 3. **Deploy!**
@@ -138,8 +140,8 @@ world-cup-analytics-dashboard/
 ├── dashboard_spec.yaml            # Configuration spec
 ├── README.md                      # This file
 ├── data/
-│   ├── bigquery.py                # Original data layer
-│   └── bigquery_enhanced.py       # Enhanced data layer (NEW)
+│   ├── athena.py                # Original data layer
+│   └── athena_enhanced.py       # Enhanced data layer (NEW)
 ├── pages/
 │   ├── _shared.py                 # Original shared components
 │   ├── _shared_enhanced.py        # Enhanced UI components (NEW)
@@ -172,18 +174,18 @@ world-cup-analytics-dashboard/
 - Proper color scales and legends
 - Hover tooltips with context
 - Mobile-responsive design
-
 ### Performance Optimization
-- BigQuery query caching (5-60 min TTL)
+
+- Athena query caching (5-60 min TTL)
 - Resource caching for database connections
 - Efficient SQL (SELECT only required columns)
-- Aggregation pushed to BigQuery
+- Aggregation pushed to Athena
 
 ---
 
 ## 🔒 Security
 
-- **Read-Only Access**: All BigQuery queries are SELECT-only
+- **Read-Only Access**: All Athena queries are SELECT-only
 - **Credential Storage**: Secrets stored in environment variables
 - **No Hardcoded Credentials**: All tokens in `.env` or Streamlit secrets
 - **GitHub Mirror**: Source on Gitea, deployment via GitHub
@@ -244,7 +246,7 @@ streamlit run app.py --server.port 8501 --server.headless true
 
 **Test Coverage:**
 - ✅ Dashboard structure (all pages exist)
-- ✅ BigQuery integration (queries execute)
+- ✅ Athena integration (queries execute)
 - ✅ Data validation (non-empty results)
 - ✅ Visualization rendering (charts populate)
 - ✅ No mock data in production mode
@@ -298,7 +300,7 @@ Internal use only - FIFA World Cup Analytics Platform
 
 **Data Analyst:** Mahmoud Magdy  
 **Deployment:** Streamlit Cloud  
-**Data Source:** Google Cloud BigQuery (`project-2f1e456e-b1be-4551-92b`)
+**Data Source:** AWS Athena (`worldcup_2026`)
 
 ---
 

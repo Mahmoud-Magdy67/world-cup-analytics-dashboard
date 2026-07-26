@@ -5,10 +5,10 @@ PAGES=[st.Page("pages/overview.py",title="Tournament Overview"),st.Page("pages/t
 def build_navigation(): return st.navigation(PAGES)
 def main():
     st.sidebar.title("World Cup Analytics")
-    from data import bigquery_enhanced as _bq_status
-    status = _bq_status.get_data_source_status()
-    if status.bigquery_enabled:
-        st.sidebar.success(f"Live data from BigQuery")
+    from data import athena_enhanced as _athena_status
+    status = _athena_status.get_data_source_status()
+    if status.athena_enabled:
+        st.sidebar.success(f"Live data from Athena")
     else:
         st.sidebar.info(f"Mock data mode: {status.note[:50]}")
     build_navigation().run()

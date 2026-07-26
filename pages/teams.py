@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from pages._shared_enhanced import load_custom_css, page_header, info_card
-from data.bigquery_enhanced import get_teams, get_team_attributes
+from data.athena_enhanced import get_teams, get_team_attributes
 
 # Apply CSS
 load_custom_css()
@@ -405,7 +405,7 @@ st.subheader("🏅 Tournament Progression Funnel")
 
 # Load predictions for stage probabilities
 try:
-    from data.bigquery_enhanced import get_predictions
+    from data.athena_enhanced import get_predictions
     preds = get_predictions()
     if not preds.empty:
         funnel_stages = [

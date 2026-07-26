@@ -1,5 +1,5 @@
 # data package init
-from .bigquery_enhanced import (
+from .athena_enhanced import (
     get_data_source_status,
     get_teams,
     get_players,
