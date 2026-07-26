@@ -5,9 +5,4 @@ from .athena import (
     get_players,
     get_matches,
     get_predictions,
-    get_stage_probabilities,
-    get_tournament_overview,
-    get_team_attributes,
-    get_model_methodology,
-    get_data_quality_report,
 )

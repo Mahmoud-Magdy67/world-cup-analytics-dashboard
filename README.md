@@ -23,7 +23,7 @@ A professional analytics dashboard powered by AWS Athena, featuring Monte Carlo 
 
 ### **Key Capabilities**
 
-✅ **Real-Time BigQuery Integration** - Direct queries to production World Cup dataset  
+26|✅ **Real-Time AWS Athena Integration** - Direct queries to production World Cup dataset
 ✅ **10M Monte Carlo Simulations** - Stable championship probability estimates  
 ✅ **Professional Dark Theme** - Custom CSS with modern UI components  
 ✅ **Advanced Visualizations** - Radar charts, heatmaps, funnels, treemaps  
@@ -47,6 +47,9 @@ A professional analytics dashboard powered by AWS Athena, featuring Monte Carlo 
 
 ## 📊 Data Sources
 
+### Important Note About Data Migration
+The dashboard has been successfully migrated from BigQuery to AWS Athena, but the actual World Cup data needs to be transferred separately. If you're seeing mock data or empty tables, you need to complete the data migration process described in `DATA_MIGRATION_INSTRUCTIONS.md`.
+
 ### Athena Dataset: `worldcup_2026`
 
 **Key Tables & Views:**
@@ -67,6 +70,8 @@ A professional analytics dashboard powered by AWS Athena, featuring Monte Carlo 
 - ELO-based match probabilities
 - Market value and player performance adjustments
 - Home advantage factors for host nations
+
+For detailed migration instructions, see `DATA_MIGRATION_INSTRUCTIONS.md` and `QUICK_DATA_MIGRATION.md`.
 
 ---
 
@@ -140,8 +145,7 @@ world-cup-analytics-dashboard/
 ├── dashboard_spec.yaml            # Configuration spec
 ├── README.md                      # This file
 ├── data/
-│   ├── athena.py                # Original data layer
-│   └── athena_enhanced.py       # Enhanced data layer (NEW)
+│   └── athena.py                 # Data layer for AWS Athena
 ├── pages/
 │   ├── _shared.py                 # Original shared components
 │   ├── _shared_enhanced.py        # Enhanced UI components (NEW)
