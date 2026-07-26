@@ -9,9 +9,9 @@ from botocore.exceptions import ClientError, NoCredentialsError
 import streamlit as st
 
 # Configuration
-AWS_REGION: Final[str] = os.getenv("AWS_REGION", "us-east-1")
+AWS_REGION: Final[str] = os.getenv("AWS_REGION", "eu-west-3")
 ATHENA_DATABASE: Final[str] = os.getenv("ATHENA_DATABASE", "worldcup_2026")
-ATHENA_OUTPUT_BUCKET: Final[str] = os.getenv("ATHENA_OUTPUT_BUCKET", "aws-athena-query-results-worldcup")
+ATHENA_OUTPUT_BUCKET: Final[str] = os.getenv("ATHENA_OUTPUT_BUCKET", "aws-athena-query-results-986420598705-eu-west-3")
 
 # Allowed datasets (read-only)
 ALLOWED_ATHENA_DATASET_PLACEHOLDERS: Final[list[str]] = [
