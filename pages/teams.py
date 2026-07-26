@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from pages._shared_enhanced import load_custom_css, page_header, info_card
-from data.athena_enhanced import get_teams, get_team_attributes
+from data.athena import get_teams, get_team_attributes
 
 # Apply CSS
 load_custom_css()

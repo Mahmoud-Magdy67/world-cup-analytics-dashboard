@@ -5,7 +5,7 @@ PAGES=[st.Page("pages/overview.py",title="Tournament Overview"),st.Page("pages/t
 def build_navigation(): return st.navigation(PAGES)
 def main():
     st.sidebar.title("World Cup Analytics")
-    from data import athena_enhanced as _athena_status
+    from data import athena as _athena_status
     status = _athena_status.get_data_source_status()
     if status.athena_enabled:
         st.sidebar.success(f"Live data from Athena")
