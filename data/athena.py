@@ -343,10 +343,80 @@ def get_predictions() -> pd.DataFrame:
         print(f"Athena error in get_predictions(): {e}")
         return _get_mock_predictions()
 
+def get_tournament_overview() -> pd.DataFrame:
+    """Tournament-level KPIs from looker overview table. Falls back to mock."""
+    query = f"""
+    SELECT simulation_runs, team_count, predicted_champion,
+           predicted_champion_probability, second_favorite,
+           second_favorite_probability, champion_gap_probability,
+           total_group_fixtures, completed_locked_fixtures,
+           remaining_group_fixtures
+    FROM "{ATHENA_DATABASE}"."looker_wc26_overview_kpis_v15_live_10m"
+    """
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_tournament_overview(): {e}")
+        return pd.DataFrame([{
+            "simulation_runs": 10_000_000,
+            "team_count": 48,
+            "predicted_champion": "Spain",
+            "predicted_champion_probability": 15.35,
+            "second_favorite": "France",
+            "second_favorite_probability": 9.09,
+            "champion_gap_probability": 6.26,
+            "total_group_fixtures": 72,
+            "completed_locked_fixtures": 0,
+            "remaining_group_fixtures": 72,
+        }])
+
+def get_team_attributes() -> pd.DataFrame:
+    """Per-team tactical/strength attributes (hybrid FC/plElo)."""
+    query = f"""
+    SELECT team_name, fifa_code, group_name, continent, confederation,
+           elo_rating, total_market_value_eur, market_value_index,
+           vfc2_hybrid_power_score, real_world_score, fc_eye_test_score,
+           avg_ovr_top23, avg_ovr_top11, best_player_ovr,
+           gk_strength, defense_strength, midfield_strength, attack_strength,
+           top23_goals, top23_assists, top23_xg, top23_xa,
+           goalkeeper_save_rate, avg_club_last10_points_per_match,
+           real_player_performance_score
+    FROM "{ATHENA_DATABASE}"."ml_fc_real_hybrid_team_attributes_vfc_2"
+    WHERE vfc2_hybrid_power_score IS NOT NULL
+    ORDER BY vfc2_hybrid_power_score DESC
+    """
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_team_attributes(): {e}")
+        return pd.DataFrame()
+
+def get_stage_probabilities() -> pd.DataFrame:
+    """Stage-by-stage advancement probabilities."""
+    query = f"""
+    SELECT * FROM "{ATHENA_DATABASE}"."v_stage_probability_dashboard_v15_live_10m"
+    """
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_stage_probabilities(): {e}")
+        return pd.DataFrame()
+
+def get_match_predictions() -> pd.DataFrame:
+    fixture_view = "ml_group_fixture_predictions_v15_live_match_calibrated"
+    query = f"SELECT * FROM \"{ATHENA_DATABASE}\".\"{fixture_view}\""
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_match_predictions(): {e}")
+        return pd.DataFrame()
+
 # Backward compatibility aliases
 get_mock_teams = get_teams
 get_mock_players = get_players
 get_mock_matches = get_matches
+get_mock_predictions = get_predictions
+get_player_tournament_stats = get_players  # pages.py uses granular per-tournament; alias to players fallback
 get_mock_predictions = get_predictions
 
 # ============================================================================
