@@ -15,7 +15,7 @@ from data.athena import (
 from data.real_wc26 import (
     get_real_wc26_matches, get_real_wc26_summary,
     get_real_wc26_outcome_counts, get_real_wc26_team_stats,
-    STAGE_ORDER,
+    get_real_wc26_xg_by_team, STAGE_ORDER,
 )
 
 load_custom_css()
@@ -108,9 +108,11 @@ st.success(
 )
 
 st.caption(
-    "Source: pre-tournament model probabilities from AWS Athena (v_winner_prediction_dashboard_v15_live_10m); "
-    "real match results from open-source dataset tatamyiwathy/WorldCup2026 (worldcup26.json, "
-    "creative-commons licensed, 104 matches / 307 goals)."
+    "Sources: pre-tournament championship probabilities from AWS Athena "
+    "(v_winner_prediction_dashboard_v15_live_10m, 10M Monte Carlo runs). "
+    "Real match results from the open Kaggle dataset "
+    "mominullptr/fifa-world-cup-2026-dataset (CC0 public domain, "
+    "104 matches / 308 goals / 2.96 avg)."
 )
 
 st.divider()
@@ -154,8 +156,8 @@ st.subheader("⚽ Match Outcome Distribution")
 
 if not real_outcomes.empty and total_matches > 0:
     # Use real per-stage breakdown; compute overall share
-    main = real_outcomes[real_outcomes['stage'] != 'Total'].copy()
-    total_row = real_outcomes[real_outcomes['stage'] == 'Total'].iloc[0] if (real_outcomes['stage'] == 'Total').any() else None
+    main = real_outcomes[real_outcomes['stage_name'] != 'Total'].copy()
+    total_row = real_outcomes[real_outcomes['stage_name'] == 'Total'].iloc[0] if (real_outcomes['stage_name'] == 'Total').any() else None
     overall = {
         'Home Wins': int(total_row['home_wins']) if total_row is not None else int(main['home_wins'].sum()),
         'Away Wins': int(total_row['away_wins']) if total_row is not None else int(main['away_wins'].sum()),
@@ -195,7 +197,7 @@ if not real_outcomes.empty and total_matches > 0:
     st.markdown("#### Per-Stage Outcomes")
     st.dataframe(
         real_outcomes.rename(columns={
-            'stage': 'Stage', 'matches': 'Matches', 'home_wins': 'Home Wins',
+            'stage_name': 'Stage', 'matches': 'Matches', 'home_wins': 'Home Wins',
             'away_wins': 'Away Wins', 'draws': 'Draws', 'goals': 'Goals',
         }).style.format({
             'Matches': '{:d}', 'Home Wins': '{:d}',
