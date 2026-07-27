@@ -463,8 +463,8 @@ get_mock_teams = get_teams
 get_mock_players = get_players
 get_mock_matches = get_matches
 get_mock_predictions = get_predictions
-get_player_tournament_stats = get_players  # pages.py uses granular per-tournament; alias to players fallback
-get_mock_predictions = get_predictions
+# get_player_tournament_stats is defined above with its own implementation;
+# do NOT re-alias it to get_players (that overwrites the proper version).
 
 # ============================================================================
 # MOCK DATA FALLBACK (when Athena unavailable)
