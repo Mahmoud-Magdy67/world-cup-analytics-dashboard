@@ -136,8 +136,7 @@ with c1:
         top_scorers.sort_values("wc26_goals", ascending=True),
         x="wc26_goals", y="spotlight_name",
         orientation="h",
-        color="position" if "position" in top_scorers.columns else None,
-        color_discrete_sequence=FWC26_POSITION_COLORS,
+        color_discrete_sequence=[FWC26_RED],
         labels={"wc26_goals": "Goals", "spotlight_name": "Player"},
         text="wc26_goals",
     )
@@ -159,8 +158,7 @@ with c2:
             top_assists.sort_values("wc26_assists", ascending=True),
             x="wc26_assists", y="spotlight_name",
             orientation="h",
-            color="position" if "position" in top_assists.columns else None,
-            color_discrete_sequence=FWC26_POSITION_COLORS,
+            color_discrete_sequence=[FWC26_SILVER],
             labels={"wc26_assists": "Assists", "spotlight_name": "Player"},
             text="wc26_assists",
         )
