@@ -11,7 +11,11 @@ import numpy as np
 from pages._shared_enhanced import *
 from data.athena import (
     get_predictions, get_teams, get_tournament_overview,
-    get_match_predictions, get_team_match_results, get_match_outcome_summary,
+)
+from data.real_wc26 import (
+    get_real_wc26_matches, get_real_wc26_summary,
+    get_real_wc26_outcome_counts, get_real_wc26_team_stats,
+    STAGE_ORDER,
 )
 
 load_custom_css()
@@ -26,15 +30,20 @@ page_header(
 # LOAD DATA
 # ============================================================================
 with st.spinner("Loading tournament retrospective..."):
+    # Pre-tournament model predictions (Athena) + real-world results (JSON)
     predictions = get_predictions()
     teams = get_teams()
     overview = get_tournament_overview()
-    match_preds = get_match_predictions()
-    team_results = get_team_match_results()
-    outcome_summary = get_match_outcome_summary()
+    real_matches = get_real_wc26_matches()
+    real_summary = get_real_wc26_summary()
+    real_outcomes = get_real_wc26_outcome_counts()
+    real_team_stats = get_real_wc26_team_stats()
 
 if predictions.empty:
-    st.error("Failed to load data from AWS Athena.")
+    st.error("Failed to load model-prediction data from AWS Athena.")
+    st.stop()
+if real_matches.empty:
+    st.error("Failed to load real WC26 results from data/real_wc26/worldcup26.json")
     st.stop()
 
 # Merge total_market_value_eur + tournament_status from teams into predictions
@@ -52,6 +61,16 @@ if {'tournament_status', 'elimination_stage'}.issubset(teams.columns):
 
 # Sort by winner_rank (prediction-time ranking)
 predictions = predictions.sort_values('winner_rank').reset_index(drop=True)
+
+# Pull real totals
+real_s = real_summary.iloc[0]
+total_matches = int(real_s.get('total_matches', 0) or 0)
+total_goals = int(real_s.get('total_goals', 0) or 0)
+avg_goals = float(real_s.get('avg_goals_per_match', 0) or 0)
+winner = real_s.get('winner', 'Spain')
+runner_up = real_s.get('runner_up', 'Argentina')
+final_score = real_s.get('final_score', '1-0')
+final_date = real_s.get('final_date')
 
 st.divider()
 
@@ -83,8 +102,15 @@ with hcol4:
 
 st.success(
     f"✅ **Prediction validated.** Spain entered the tournament as the model's #1 favorite "
-    f"({spain_prob:.1f}% championship probability) and won the final. "
-    f"The pre-tournament ranking correctly identified the champion."
+    f"({spain_prob:.1f}% championship probability) and won the {final_date.strftime('%B %d, %Y') if final_date else '2026'} final "
+    f"({final_score} vs {runner_up} after extra time). "
+    f"The pre-tournament ranking correctly identified the champion of the 48-team field."
+)
+
+st.caption(
+    "Source: pre-tournament model probabilities from AWS Athena (v_winner_prediction_dashboard_v15_live_10m); "
+    "real match results from open-source dataset tatamyiwathy/WorldCup2026 (worldcup26.json, "
+    "creative-commons licensed, 104 matches / 307 goals)."
 )
 
 st.divider()
@@ -94,16 +120,13 @@ st.divider()
 # ============================================================================
 st.markdown("## 📊 Tournament at a Glance")
 
-if not outcome_summary.empty:
-    row = outcome_summary.iloc[0]
+if not real_summary.empty:
+    row = real_summary.iloc[0]
     total_matches = int(row.get('total_matches', 0) or 0)
     total_goals = int(row.get('total_goals', 0) or 0)
     avg_goals = float(row.get('avg_goals_per_match', 0) or 0)
-    draws = int(row.get('draws', 0) or 0)
-    team_a_wins = int(row.get('team_a_wins', 0) or 0)
-    team_b_wins = int(row.get('team_b_wins', 0) or 0)
 else:
-    total_matches = total_goals = draws = team_a_wins = team_b_wins = 0
+    total_matches = total_goals = 0
     avg_goals = 0
 
 total_teams = 48
@@ -129,10 +152,18 @@ st.write("")
 # ============================================================================
 st.subheader("⚽ Match Outcome Distribution")
 
-if total_matches > 0:
+if not real_outcomes.empty and total_matches > 0:
+    # Use real per-stage breakdown; compute overall share
+    main = real_outcomes[real_outcomes['stage'] != 'Total'].copy()
+    total_row = real_outcomes[real_outcomes['stage'] == 'Total'].iloc[0] if (real_outcomes['stage'] == 'Total').any() else None
+    overall = {
+        'Home Wins': int(total_row['home_wins']) if total_row is not None else int(main['home_wins'].sum()),
+        'Away Wins': int(total_row['away_wins']) if total_row is not None else int(main['away_wins'].sum()),
+        'Draws (regulation)': int(total_row['draws']) if total_row is not None else int(main['draws'].sum()),
+    }
     outcome_df = pd.DataFrame({
-        'Outcome': ['Team A Wins', 'Draws', 'Team B Wins'],
-        'Matches': [team_a_wins, draws, team_b_wins],
+        'Outcome': list(overall.keys()),
+        'Matches': list(overall.values()),
     })
     outcome_df['Share %'] = (outcome_df['Matches'] / total_matches * 100).round(1)
 
@@ -140,8 +171,8 @@ if total_matches > 0:
         outcome_df, x='Outcome', y='Matches',
         text=[f"{m} ({p}%)" for m, p in zip(outcome_df['Matches'], outcome_df['Share %'])],
         color='Outcome',
-        color_discrete_map={'Team A Wins': '#00F0FF', 'Draws': '#7B00FF', 'Team B Wins': '#FF004D'},
-        title=f"Result Distribution Across {total_matches} Matches (Group Stage)",
+        color_discrete_map={'Home Wins': '#00F0FF', 'Draws (regulation)': '#7B00FF', 'Away Wins': '#FF004D'},
+        title=f"Result Distribution Across {total_matches} Matches (Real WC26 Results)",
     )
     fig_out.update_layout(
         paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
@@ -152,9 +183,25 @@ if total_matches > 0:
 
     info_card(
         "AI Insight",
-        f"Across {total_matches} matches, Team A won {team_a_wins} ({team_a_wins/total_matches*100:.0f}%), "
-        f"Team B won {team_b_wins} ({team_b_wins/total_matches*100:.0f}%), and {draws} ({draws/total_matches*100:.0f}%) "
-        f"ended in draws. The home-advantage skew toward Team A is consistent with the model's home_advantage feature."
+        f"Across {total_matches} matches, home-side wins accounted for {overall['Home Wins']} "
+        f"({overall['Home Wins']/total_matches*100:.0f}%) of outcomes — a reflection of the host-continent "
+        f"advantage the model was calibrated on. Away wins ({overall['Away Wins']}, "
+        f"{overall['Away Wins']/total_matches*100:.0f}%) outnumbered draws ({overall['Draws (regulation)']}, "
+        f"{overall['Draws (regulation)']/total_matches*100:.0f}%), with the edge in the knockout rounds as "
+        "extra-time / penalty shootouts converted most regulation draws into a winner."
+    )
+
+    # Per-stage outcomes breakdown table
+    st.markdown("#### Per-Stage Outcomes")
+    st.dataframe(
+        real_outcomes.rename(columns={
+            'stage': 'Stage', 'matches': 'Matches', 'home_wins': 'Home Wins',
+            'away_wins': 'Away Wins', 'draws': 'Draws', 'goals': 'Goals',
+        }).style.format({
+            'Matches': '{:d}', 'Home Wins': '{:d}',
+            'Away Wins': '{:d}', 'Draws': '{:d}', 'Goals': '{:d}',
+        }),
+        hide_index=True, use_container_width=True,
     )
 else:
     st.info("No match result data available.")
@@ -225,33 +272,21 @@ st.divider()
 # ============================================================================
 st.subheader("🥅 Goals Analysis — Which Teams Delivered?")
 
-if not team_results.empty:
-    # Aggregate per-team goals
-    team_results['goals_for'] = pd.to_numeric(team_results['goals_for'], errors='coerce').fillna(0).astype(int)
-    team_results['goals_against'] = pd.to_numeric(team_results['goals_against'], errors='coerce').fillna(0).astype(int)
-    goals_agg = team_results.groupby('team_name').agg(
-        goals_for=('goals_for', 'sum'),
-        goals_against=('goals_against', 'sum'),
-        matches=('goals_for', 'size'),
-        gd_raw=('goals_for', lambda x: 0),  # placeholder, overwrite below
-    ).reset_index()
-    goals_agg['goal_difference'] = goals_agg['goals_for'] - goals_agg['goals_against']
-    goals_agg = goals_agg.sort_values('goals_for', ascending=False)
-
-    top10_goals = goals_agg.head(10).copy()
+if not real_team_stats.empty:
+    top10_goals = real_team_stats.head(10).copy()
 
     fig_goals = go.Figure()
     fig_goals.add_trace(go.Bar(
-        name='Goals For', x=top10_goals['team_name'], y=top10_goals['goals_for'],
+        name='Goals For', x=top10_goals['team'], y=top10_goals['goals_for'],
         marker_color='#00F0FF',
     ))
     fig_goals.add_trace(go.Bar(
-        name='Goals Against', x=top10_goals['team_name'], y=top10_goals['goals_against'],
+        name='Goals Against', x=top10_goals['team'], y=top10_goals['goals_against'],
         marker_color='#FF004D',
     ))
     fig_goals.update_layout(
         barmode='group',
-        title="Top 10 Teams by Goals Scored (Group Stage)",
+        title="Top 10 Teams by Goals Scored (Real WC26 Results)",
         xaxis_title='Team', yaxis_title='Goals',
         paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
         font=dict(color='#000000', family='Bebas Neue'),
@@ -259,21 +294,36 @@ if not team_results.empty:
     )
     st.plotly_chart(fig_goals, use_container_width=True)
 
+    # Full team-stats table
+    st.markdown("#### Per-Team Goal Metrics")
+    st.dataframe(
+        real_team_stats.rename(columns={
+            'team': 'Team', 'matches': 'Matches', 'goals_for': 'Goals For',
+            'goals_against': 'Goals Against', 'W': 'W', 'D': 'D', 'L': 'L',
+            'goal_difference': 'GD',
+        }).style.format({
+            'Goals For': '{:d}', 'Goals Against': '{:d}',
+            'GD': '{:+d}', 'Matches': '{:d}',
+        }),
+        hide_index=True, use_container_width=True, height=500,
+    )
+
     # Overperformance vs prediction
     if {'team_name', 'winner_rank'}.issubset(predictions.columns):
-        merged = goals_agg.merge(
+        merged = real_team_stats.merge(
             predictions[['team_name', 'winner_rank', 'championship_probability_pct']],
-            on='team_name', how='left'
+            left_on='team', right_on='team_name', how='left'
         )
         merged['predicted_rank'] = merged['winner_rank']
         merged['actual_goals_rank'] = merged['goals_for'].rank(ascending=False).astype(int)
         merged['delta_rank'] = merged['predicted_rank'] - merged['actual_goals_rank']
-        overperformers = merged.dropna(subset=['predicted_rank']).sort_values('delta_rank', ascending=False).head(10)
+        # drop teams with no pre-tournament prediction
+        opp = merged.dropna(subset=['predicted_rank']).sort_values('delta_rank', ascending=False).head(15)
 
-        st.markdown("#### 📈 Over- vs Underperformers (vs Pre-Tournament Prediction)")
-        op_df = overperformers[['team_name', 'predicted_rank', 'actual_goals_rank', 'delta_rank', 'goals_for']].rename(
+        st.markdown("#### 📈 Over- vs Underperformers (actual goals vs pre-tournament model rank)")
+        op_df = opp[['team', 'predicted_rank', 'actual_goals_rank', 'delta_rank', 'goals_for']].rename(
             columns={
-                'team_name': 'Team', 'predicted_rank': 'Pred Rank',
+                'team': 'Team', 'predicted_rank': 'Pred Rank',
                 'actual_goals_rank': 'Goals Rank', 'delta_rank': 'Rank Δ',
                 'goals_for': 'Goals For',
             }
@@ -282,11 +332,10 @@ if not team_results.empty:
             lambda x: f"+{int(x)} ⬆" if x > 0 else (f"{int(x)} ⬇" if x < 0 else "0")
         )
         st.dataframe(op_df, hide_index=True, use_container_width=True)
-
         info_card(
             "AI Insight",
-            "The 'Rank Δ' column compares each team's pre-tournament win-probability rank with "
-            "their goals-scored rank in the group stage. Positive deltas (⬆) mark teams that "
+            "The 'Rank Δ' column compares each team's pre-tournament win-probability rank with their "
+            "actual goals-scored rank from the 104 real matches. Positive deltas (⬆) mark teams that "
             "outscored their model expectation — genuine overperformers vs the prior."
         )
 else:
