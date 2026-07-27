@@ -78,18 +78,20 @@ col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.metric("Players Tracked", f"{int(s['players_tracked']):,}")
 with col2:
-    st.metric("WC26 Goals", f"{int(s['wc26_goals'])}")
+    st.metric("Goals Scored", f"{int(s['wc26_goals'])}", help="Player-attributed goals. Match total is 308; the 11-goal gap is own goals (own_goals column in the dataset).")
 with col3:
-    st.metric("WC26 Assists", f"{int(s['wc26_assists'])}")
+    st.metric("Assists", f"{int(s['wc26_assists'])}")
 with col4:
-    st.metric("Goal Contributions", f"{int(s['goal_contributions'])}")
+    st.metric("G+A Involved", f"{int(s['goal_contributions'])}", help="Goals + assists recorded for these players. An assist is counted on the same play as a goal, so this is not an independent event count.")
 with col5:
     st.metric("Active Nations", f"{int(s['active_nations'])}")
 
 st.caption(
     "Source: open Kaggle dataset mominullptr/fifa-world-cup-2026-dataset (CC0 public domain). "
     "Stats verified against sofascore.com. All 1,248 WC26 squad players — no club-season data, "
-    "no synthetic prediction-system entries."
+    "no synthetic prediction-system entries. "
+    f"Player-attributed goals sum to {int(s['wc26_goals'])}; the {308 - int(s['wc26_goals'])} own goals "
+    "bring the tournament-wide match total to 308."
 )
 st.divider()
 
