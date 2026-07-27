@@ -402,14 +402,61 @@ def get_stage_probabilities() -> pd.DataFrame:
         print(f"Athena error in get_stage_probabilities(): {e}")
         return pd.DataFrame()
 
+def get_player_tournament_stats() -> pd.DataFrame:
+    """Per-tournament WC26 player stats (goals/assists). Falls back to season totals."""
+    # The Athena view v_real_player_rows_enriched_v8 doesn't carry per-tournament
+    # WC26 stats. Use the club-season row (the page treats it as proxy goals/assists)
+    # filtered to World Cup nations.
+    query = f"""
+    SELECT player_name, nation_code, position, club_team, league,
+           goals, assists, minutes, matches_played
+    FROM "{ATHENA_DATABASE}"."v_real_player_rows_enriched_v8"
+    WHERE nation_code IN (SELECT fifa_code FROM "{ATHENA_DATABASE}"."v_teams_clean")
+    ORDER BY goals DESC, assists DESC
+    LIMIT 200
+    """
+    try:
+        df = _execute_readonly_query(query)
+        if df.empty:
+            return pd.DataFrame(columns=["player_name", "wc26_goals", "wc26_assists"])
+        # Rename season stats -> wc26_ placeholder columns the page expects
+        df = df.rename(columns={
+            "goals": "wc26_goals",
+            "assists": "wc26_assists",
+            "matches_played": "wc26_matches",
+        })
+        for col in ("wc26_goals", "wc26_assists", "wc26_matches"):
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+        return df[["player_name", "wc26_goals", "wc26_assists"]]
+    except Exception as e:
+        print(f"Athena error in get_player_tournament_stats(): {e}")
+        return pd.DataFrame(columns=["player_name", "wc26_goals", "wc26_assists"])
+
+
 def get_match_predictions() -> pd.DataFrame:
     fixture_view = "ml_group_fixture_predictions_v15_live_match_calibrated"
     query = f"SELECT * FROM \"{ATHENA_DATABASE}\".\"{fixture_view}\""
     try:
-        return _execute_readonly_query(query)
+        df = _execute_readonly_query(query)
+        # Map Athena column names -> what matches.py expects
+        rename = {
+            "team_a_win_probability": "win_probability",
+            "team_a_loss_probability": "loss_probability",
+            "draw_probability": "draw_probability",
+        }
+        for src, dst in rename.items():
+            if src in df.columns and dst not in df.columns:
+                df[dst] = df[src]
+        # 1 - win_probability - draw_probability ~= loss_probability
+        if "win_probability" in df.columns and "draw_probability" in df.columns and "loss_probability" not in df.columns:
+            df["loss_probability"] = (1.0 - pd.to_numeric(df["win_probability"], errors="coerce").fillna(0)
+                                      - pd.to_numeric(df["draw_probability"], errors="coerce").fillna(0)).clip(lower=0)
+        return df
     except Exception as e:
         print(f"Athena error in get_match_predictions(): {e}")
         return pd.DataFrame()
+
 
 # Backward compatibility aliases
 get_mock_teams = get_teams
