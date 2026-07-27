@@ -34,19 +34,23 @@ if predictions.empty:
     st.error("Failed to load prediction data. Please check AWS Athena connection.")
     st.stop()
 
-# Merge tournament_status and elimination_stage from teams (v16 table) into predictions
-# teams has the updated v16 data with tournament_status/elimination_stage
-# predictions comes from the old view without these columns
+# Merge tournament_status, elimination_stage, AND total_market_value_eur from teams
+# (predictions view doesn't carry these columns; they live in the teams table)
+if 'total_market_value_eur' in teams.columns:
+    predictions = predictions.merge(
+        teams[['team_name', 'total_market_value_eur']],
+        on='team_name',
+        how='left',
+    )
+
 if 'tournament_status' in teams.columns and 'elimination_stage' in teams.columns:
-    # Create a lookup dict from teams
     status_lookup = teams.set_index('team_name')[['tournament_status', 'elimination_stage']].to_dict('index')
-    
-    # Merge into predictions
+
     def get_status(team):
         return status_lookup.get(team, {}).get('tournament_status', 'Unknown')
     def get_elim_stage(team):
         return status_lookup.get(team, {}).get('elimination_stage', None)
-    
+
     predictions['tournament_status'] = predictions['team_name'].map(get_status)
     predictions['elimination_stage'] = predictions['team_name'].map(get_elim_stage)
 
