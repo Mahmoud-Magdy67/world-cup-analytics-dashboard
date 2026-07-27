@@ -458,6 +458,47 @@ def get_match_predictions() -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def get_team_match_results() -> pd.DataFrame:
+    """Per-team goals for/against from real match results (team_a and team_b perspectives)."""
+    query = f"""
+    SELECT team_a AS team_name,
+           CAST(actual_team_a_score AS BIGINT) AS goals_for,
+           CAST(actual_team_b_score AS BIGINT) AS goals_against
+    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
+    WHERE actual_team_a_score IS NOT NULL
+    UNION ALL
+    SELECT team_b AS team_name,
+           CAST(actual_team_b_score AS BIGINT) AS goals_for,
+           CAST(actual_team_a_score AS BIGINT) AS goals_against
+    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
+    WHERE actual_team_a_score IS NOT NULL
+    """
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_team_match_results(): {e}")
+        return pd.DataFrame()
+
+
+def get_match_outcome_summary() -> pd.DataFrame:
+    """Counts of match outcomes (wins/draws/losses for team_a) plus total matches."""
+    query = f"""
+    SELECT COUNT(*) AS total_matches,
+           SUM(CASE WHEN actual_result_label = 'A_WIN' THEN 1 ELSE 0 END) AS team_a_wins,
+           SUM(CASE WHEN actual_result_label = 'B_WIN' THEN 1 ELSE 0 END) AS team_b_wins,
+           SUM(CASE WHEN actual_result_label = 'DRAW' THEN 1 ELSE 0 END) AS draws,
+           SUM(CAST(actual_team_a_score AS BIGINT) + CAST(actual_team_b_score AS BIGINT)) AS total_goals,
+           ROUND(AVG(CAST(actual_team_a_score AS BIGINT) + CAST(actual_team_b_score AS BIGINT)), 2) AS avg_goals_per_match
+    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
+    WHERE actual_team_a_score IS NOT NULL
+    """
+    try:
+        return _execute_readonly_query(query)
+    except Exception as e:
+        print(f"Athena error in get_match_outcome_summary(): {e}")
+        return pd.DataFrame()
+
+
 # Backward compatibility aliases
 get_mock_teams = get_teams
 get_mock_players = get_players
