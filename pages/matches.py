@@ -347,9 +347,17 @@ if 'stage' in filtered.columns:
         knockout_counts = knockout_matches['stage'].value_counts().reset_index()
         knockout_counts.columns = ['stage', 'matches']
         
-        # Order the stages logically
-        stage_order = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third place play-off', 'Final']
-        knockout_counts['stage'] = pd.Categorical(knockout_counts['stage'], categories=stage_order, ordered=True)
+        # Order the stages logically — must match the real Athena values:
+        # ['Final', 'Group Stage', 'Quarter-finals', 'Round of 16',
+        #  'Round of 32', 'Semi-finals', 'Third Place']
+        stage_order = ['Round of 32', 'Round of 16', 'Quarter-finals',
+                       'Semi-finals', 'Third Place', 'Final']
+        # Only keep categories that actually appear; this also avoids the
+        # Pandas4Warning about values not in the dtype's categories.
+        present_stages = set(knockout_counts['stage'].dropna().unique())
+        ordered_present = [s for s in stage_order if s in present_stages]
+        knockout_counts['stage'] = pd.Categorical(
+            knockout_counts['stage'], categories=ordered_present, ordered=True)
         knockout_counts = knockout_counts.sort_values('stage')
         
         col1, col2 = st.columns([2, 1])
@@ -393,12 +401,21 @@ if 'stage' in filtered.columns:
         
         if predictions_df is not None and not predictions_df.empty:
             # Show win probabilities for upcoming knockout matches if available
-            ko_with_preds = knockout_matches.merge(
-                predictions_df[['match_number', 'win_probability', 'draw_probability', 'loss_probability']], 
-                on='match_number', 
-                how='left'
-            )
-            
+            # Only select columns that actually exist in predictions_df (the
+            # Athena predictions view carries 55 cols; the rename in
+            # athena.py adds win/loss/draw, but be defensive across deployments).
+            prob_cols = [c for c in ('match_number', 'win_probability', 'draw_probability', 'loss_probability')
+                         if c in predictions_df.columns]
+            if len(prob_cols) > 1:  # at least match_number + one prob col
+                preds_subset = predictions_df[prob_cols].copy()
+                ko_with_preds = knockout_matches.merge(
+                    preds_subset,
+                    on='match_number',
+                    how='left'
+                )
+            else:
+                ko_with_preds = knockout_matches.copy()
+
             if not ko_with_preds.empty and 'win_probability' in ko_with_preds.columns:
                 st.markdown("#### 🔮 Match Win Probabilities (Available Data)")
                 prob_display = ko_with_preds[['match_number', 'team', 'opponent', 'stage', 'win_probability']].copy()
@@ -522,21 +539,24 @@ if 'match_date' in filtered.columns:
     calendar_df['date_str'] = calendar_df['match_date'].dt.strftime('%b %d')
     calendar_df['day_of_week'] = calendar_df['match_date'].dt.day_name()
     
-    # Group by date
-    daily_matches = calendar_df.groupby(['date_str', 'day_of_week']).agg(
+    # Group by date — carry an ISO date key for correct chronological sort
+    # (date_str 'MMM DD' sorts alphabetically and breaks across months).
+    calendar_df['date_iso'] = calendar_df['match_date'].dt.strftime('%Y-%m-%d')
+    daily_matches = calendar_df.groupby(['date_iso', 'date_str', 'day_of_week']).agg(
         matches=('match_number', 'size'),
         teams=('team', lambda x: ', '.join(sorted(x.unique())[:4]) + ('...' if len(x.unique()) > 4 else ''))
-    ).reset_index().sort_values('match_date')
+    ).reset_index().sort_values('date_iso')
     
     if not daily_matches.empty:
-        # Show as a table
+        # Show as a table — drop the internal ISO sort key before display
+        display_df = daily_matches.drop(columns=['date_iso']).rename(columns={
+            'date_str': 'Date',
+            'day_of_week': 'Day',
+            'matches': '# Matches',
+            'teams': 'Teams Playing'
+        })
         st.dataframe(
-            daily_matches.rename(columns={
-                'date_str': 'Date',
-                'day_of_week': 'Day',
-                'matches': '# Matches',
-                'teams': 'Teams Playing'
-            }),
+            display_df,
             column_config={
                 "Date": st.column_config.TextColumn("Date"),
                 "Day": st.column_config.TextColumn("Day"),
