@@ -281,23 +281,27 @@ TABLE_NAMES = {csv: csv.replace(".csv", "") for csv in SCHEMAS}
 # AWS clients
 # ---------------------------------------------------------------------------
 def make_clients():
+    """Initialize S3/Athena/Glue clients from env vars (validate first if env set)."""
+    ak = os.getenv("AWS_ACCESS_KEY_ID")
+    sk = os.getenv("AWS_SECRET_ACCESS_KEY")
+    region = os.getenv("AWS_REGION", "eu-west-3")
     s3 = boto3.client(
         "s3",
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
+        aws_access_key_id=ak,
+        aws_secret_access_key=sk,
+        region_name=region,
     )
     athena = boto3.client(
         "athena",
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
+        aws_access_key_id=ak,
+        aws_secret_access_key=sk,
+        region_name=region,
     )
     glue = boto3.client(
         "glue",
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
+        aws_access_key_id=ak,
+        aws_secret_access_key=sk,
+        region_name=region,
     )
     return s3, athena, glue
 
@@ -432,7 +436,7 @@ DERIVED_VIEWS = {
             SUM(goals_for) AS goals_for,
             SUM(goals_against) AS goals_against,
             SUM(CASE WHEN goals_for > goals_against THEN 1 ELSE 0 END) AS W,
-            SUM(CASE WHEN goals_for = goals_against AND result_type IN ('Regular','AET') THEN 1 ELSE 0 END) AS D,
+            SUM(CASE WHEN goals_for = goals_against THEN 1 ELSE 0 END) AS D,
             SUM(CASE WHEN goals_for < goals_against THEN 1 ELSE 0 END) AS L,
             SUM(goals_for) - SUM(goals_against) AS goal_difference
         FROM both
