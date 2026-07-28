@@ -1,142 +1,160 @@
+"""
+data/athena.py — World Cup 2026 Analytics
+
+Reads the dashboard's analytical views from AWS Athena, which queries the real
+Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0) uploaded to
+S3 under s3://wc2026-simulation-data/kaggle_wc26/ and materialized as 12
+external tables + 7 derived views in the worldcup_2026 Glue/Athena database.
+
+The migration is done by `migrate_kaggle_to_aws.py` (run once, idempotent).
+
+This module is the dashboard's only data layer — every page calls these
+loaders, every value is computed by Athena SQL over the real Kaggle data.
+"""
 from dataclasses import dataclass
-from typing import Final, Optional, Dict, Any
+from typing import Final, Optional, Dict
 import os
+import time
 import pandas as pd
 import boto3
-import time
-from datetime import datetime
 from botocore.exceptions import ClientError, NoCredentialsError
 import streamlit as st
 
+# ---------------------------------------------------------------------------
 # Configuration
+# ---------------------------------------------------------------------------
 AWS_REGION: Final[str] = os.getenv("AWS_REGION", "eu-west-3")
 ATHENA_DATABASE: Final[str] = os.getenv("ATHENA_DATABASE", "worldcup_2026")
-ATHENA_OUTPUT_BUCKET: Final[str] = os.getenv("ATHENA_OUTPUT_BUCKET", "aws-athena-query-results-986420598705-eu-west-3")
+# NOTE: the result bucket must be in the same AWS region as the Athena endpoint
+# (eu-west-3). The `aws-athena-query-results-worldcup` bucket is in us-east-1 and
+# will be rejected by start_query_execution.
+ATHENA_OUTPUT_BUCKET: Final[str] = os.getenv(
+    "ATHENA_OUTPUT_BUCKET",
+    "aws-athena-query-results-986420598705-eu-west-3",
+)
 
 # Allowed datasets (read-only)
-ALLOWED_ATHENA_DATASET_PLACEHOLDERS: Final[list[str]] = [
-    "worldcup_2026"
-]
+ALLOWED_ATHENA_DATASET_PLACEHOLDERS: Final[list[str]] = ["worldcup_2026"]
 READ_ONLY_RULE: Final[str] = "Only SELECT queries are allowed for Athena access."
 
+# ---------------------------------------------------------------------------
+# Athena client + query execution
+# ---------------------------------------------------------------------------
 def _get_athena_client() -> Optional[boto3.client]:
     """Initialize Athena client from Streamlit secrets or environment credentials."""
     import streamlit as st
-    
-    # Try Streamlit secrets first (for Streamlit Cloud deployment)
     aws_access_key_id = None
     aws_secret_access_key = None
     region_name = AWS_REGION
-    
+
     try:
-        if hasattr(st, 'secrets') and 'credentials' in st.secrets:
-            aws_access_key_id = st.secrets['credentials'].get('AWS_ACCESS_KEY_ID')
-            aws_secret_access_key = st.secrets['credentials'].get('AWS_SECRET_ACCESS_KEY')
-            region_name = st.secrets['credentials'].get('AWS_REGION', AWS_REGION)
+        if hasattr(st, "secrets") and "credentials" in st.secrets:
+            aws_access_key_id = st.secrets["credentials"].get("AWS_ACCESS_KEY_ID")
+            aws_secret_access_key = st.secrets["credentials"].get("AWS_SECRET_ACCESS_KEY")
+            region_name = st.secrets["credentials"].get("AWS_REGION", AWS_REGION)
     except Exception:
         pass
-    
-    # Fallback to environment variables (for local development)
+
     if not aws_access_key_id:
         aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     if not aws_secret_access_key:
         aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     if not region_name:
         region_name = os.getenv("AWS_REGION", AWS_REGION)
-    
+
     if not aws_access_key_id or not aws_secret_access_key:
         return None
-    
+
     try:
         return boto3.client(
-            'athena',
+            "athena",
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
-            region_name=region_name
+            region_name=region_name,
         )
     except Exception as e:
         st.error(f"Athena auth error: {e}")
         return None
 
+
 def _execute_athena_query(query: str) -> pd.DataFrame:
-    """Execute a SELECT query on Athena and return results as DataFrame."""
+    """Execute a SELECT / WITH query on Athena and return the results as a DataFrame."""
     query_upper = query.strip().upper()
     if not (query_upper.startswith("SELECT") or query_upper.startswith("WITH")):
         raise ValueError(f"Only SELECT or WITH (CTE) queries allowed. Blocked: {query[:50]}")
-    
+
     client = _get_athena_client()
     if not client:
         raise RuntimeError("Athena client not initialized. Check AWS credentials.")
-    
+
     try:
-        # Start query execution
         response = client.start_query_execution(
             QueryString=query,
-            QueryExecutionContext={
-                'Database': ATHENA_DATABASE
-            },
-            ResultConfiguration={
-                'OutputLocation': f"s3://{ATHENA_OUTPUT_BUCKET}/"
-            }
+            QueryExecutionContext={"Database": ATHENA_DATABASE},
+            ResultConfiguration={"OutputLocation": f"s3://{ATHENA_OUTPUT_BUCKET}/"},
         )
-        
-        query_execution_id = response['QueryExecutionId']
-        
-        # Wait for query to complete
+        qid = response["QueryExecutionId"]
+
+        # Wait for completion
         while True:
-            response = client.get_query_execution(QueryExecutionId=query_execution_id)
-            status = response['QueryExecution']['Status']['State']
-            
-            if status in ['SUCCEEDED']:
+            r = client.get_query_execution(QueryExecutionId=qid)
+            status = r["QueryExecution"]["Status"]["State"]
+            if status == "SUCCEEDED":
                 break
-            elif status in ['FAILED', 'CANCELLED']:
-                reason = response['QueryExecution']['Status'].get('StateChangeReason', 'Unknown error')
+            if status in ("FAILED", "CANCELLED"):
+                reason = r["QueryExecution"]["Status"].get("StateChangeReason", "Unknown")
                 raise RuntimeError(f"Athena query failed: {reason}")
-            
-            time.sleep(1)  # Wait before checking again
-        
-        # Get results
-        results_paginator = client.get_paginator('get_query_results')
-        results_iter = results_paginator.paginate(
-            QueryExecutionId=query_execution_id,
-            PaginationConfig={
-                'PageSize': 1000
-            }
-        )
-        
-        # Process results into DataFrame
-        records = []
-        for results_page in results_iter:
-            column_info = results_page['ResultSet']['ResultSetMetadata']['ColumnInfo']
-            column_names = [col['Name'] for col in column_info]
-            
-            if 'Rows' in results_page['ResultSet']:
-                for row in results_page['ResultSet']['Rows']:
-                    if 'Data' in row:
-                        record = {}
-                        for i, data in enumerate(row['Data']):
+            time.sleep(1)
+
+        # Paginate results
+        paginator = client.get_paginator("get_query_results")
+        pages = paginator.paginate(QueryExecutionId=qid, PaginationConfig={"PageSize": 1000})
+
+        records, column_names = [], None
+        for page in pages:
+            col_info = page["ResultSet"]["ResultSetMetadata"]["ColumnInfo"]
+            column_names = [c["Name"] for c in col_info]
+            if "Rows" in page["ResultSet"]:
+                for row in page["ResultSet"]["Rows"]:
+                    if "Data" in row:
+                        rec = {}
+                        for i, d in enumerate(row["Data"]):
                             if i < len(column_names):
-                                record[column_names[i]] = data.get('VarCharValue', '')
-                        records.append(record)
-        
-        # Remove the header row (first row) and convert to DataFrame
-        if len(records) > 1:
-            df = pd.DataFrame(records[1:], columns=column_names)
-            # Convert numeric columns appropriately
+                                rec[column_names[i]] = d.get("VarCharValue", "")
+                        records.append(rec)
+
+        # Athena's first row in get_query_results is the header — drop it
+        # (the paginator DOES include the header row, so skip if first row ==
+        # column_names)
+        if records and [str(v) for v in records[0].values()] == column_names:
+            records = records[1:]
+
+        if records:
+            df = pd.DataFrame(records, columns=column_names)
             for col in df.columns:
                 try:
                     df[col] = pd.to_numeric(df[col])
                 except (ValueError, TypeError):
-                    pass  # Keep as string if conversion fails
+                    pass
             return df
-        else:
-            # Empty result
-            return pd.DataFrame(columns=column_names)
-            
+        return pd.DataFrame(columns=column_names or [])
+
     except Exception as e:
         st.error(f"Athena query execution error: {e}")
         return pd.DataFrame()
 
+
+def _execute_readonly_query(query: str) -> pd.DataFrame:
+    """Execute a read-only SELECT/WITH query. Raises ValueError for non-SELECT."""
+    q = query.strip().upper()
+    if not (q.startswith("SELECT") or q.startswith("WITH")):
+        raise ValueError(f"Only SELECT/WITH queries allowed. Blocked: {query[:50]}")
+    return _execute_athena_query(query)
+
+
+# ---------------------------------------------------------------------------
+# Data-source status
+# ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class DataSourceStatus:
     mode: str
@@ -144,409 +162,339 @@ class DataSourceStatus:
     note: str
     tables_available: Optional[Dict[str, int]] = None
 
+
 def get_data_source_status() -> DataSourceStatus:
-    """Check if Athena is connected and list available tables."""
+    """Check Athena connectivity and report counts for the key tables/views."""
     client = _get_athena_client()
-    if client:
-        try:
-            # Verify connection with simple query
-            test_query = f"SELECT 1 FROM \"{ATHENA_DATABASE}\".\"wc26_dashboard_v16_live_july4\" LIMIT 1"
-            _execute_athena_query(test_query)
-            
-            # Get table metadata
-            tables_info = {}
-            table_queries = {
-                'wc26_dashboard_v16_live_july4': f'SELECT COUNT(*) as cnt FROM "{ATHENA_DATABASE}"."wc26_dashboard_v16_live_july4"',
-                'v_winner_prediction_dashboard_v15_live_10m': f'SELECT COUNT(*) as cnt FROM "{ATHENA_DATABASE}"."v_winner_prediction_dashboard_v15_live_10m"',
-                'v_real_player_rows_enriched_v8': f'SELECT COUNT(*) as cnt FROM "{ATHENA_DATABASE}"."v_real_player_rows_enriched_v8"',
-                'v_team_schedule': f'SELECT COUNT(*) as cnt FROM "{ATHENA_DATABASE}"."v_team_schedule"',
-            }
-            for name, query in table_queries.items():
-                try:
-                    result = _execute_athena_query(query)
-                    tables_info[name] = int(result['cnt'].iloc[0]) if not result.empty else 0
-                except:
-                    tables_info[name] = 0
-            
-            return DataSourceStatus(
-                "athena", 
-                True, 
-                f"Connected to Athena database {ATHENA_DATABASE}",
-                tables_info
-            )
-        except Exception as e:
-            return DataSourceStatus("athena_error", False, f"Athena connection failed: {str(e)[:100]}", None)
-    return DataSourceStatus("mock", False, "Athena credentials not configured; using mock data", None)
+    if not client:
+        return DataSourceStatus(
+            "mock", False,
+            "Athena credentials not configured; check .streamlit/secrets.toml",
+            None,
+        )
 
-def _execute_readonly_query(query: str) -> pd.DataFrame:
-    """Execute a read-only SELECT query. Raises ValueError for non-SELECT statements."""
-    query_upper = query.strip().upper()
-    if not (query_upper.startswith("SELECT") or query_upper.startswith("WITH")):
-        raise ValueError(f"Only SELECT or WITH (CTE) queries allowed. Blocked: {query[:50]}")
-    return _execute_athena_query(query)
-
-# ============================================================================
-# REAL ATHENA QUERIES - World Cup 2026 Dataset
-# ============================================================================
-
-def get_teams() -> pd.DataFrame:
-    """
-    Fetch teams data from wc26_dashboard_v16_live_july4.
-    
-    SQL Query:
-    SELECT 
-        team_name, group_name, winner_rank, championship_probability,
-        elo_rating, total_market_value_eur, contender_tier,
-        round32_probability, round16_probability, quarterfinal_probability,
-        semifinal_probability, final_probability,
-        elimination_stage, tournament_status
-    FROM "worldcup_2026"."wc26_dashboard_v16_live_july4"
-    ORDER BY winner_rank
-    
-    Returns columns: team_name, group_name, winner_rank, championship_probability, elo_rating,
-                     total_market_value_eur, contender_tier, round32_probability, round16_probability,
-                     quarterfinal_probability, semifinal_probability, final_probability,
-                     elimination_stage, tournament_status
-    
-    Expected rows: 48 teams
-    """
-    query = f"""
-    SELECT 
-        team_name, group_name, winner_rank, championship_probability,
-        elo_rating, total_market_value_eur, contender_tier,
-        round32_probability, round16_probability, quarterfinal_probability,
-        semifinal_probability, final_probability,
-        elimination_stage, tournament_status
-    FROM "{ATHENA_DATABASE}"."wc26_dashboard_v16_live_july4"
-    ORDER BY winner_rank
-    """
+    tables = [
+        "teams", "matches_detailed", "match_team_stats",
+        "player_stats", "squads_and_players", "venues",
+        "v_team_strength", "v_team_stats", "v_tournament_summary",
+        "v_knockout_bracket", "v_outcome_counts",
+    ]
+    counts: Dict[str, int] = {}
     try:
-        result = _execute_readonly_query(query)
-        # Log success to Streamlit
-        import streamlit as st
-        st.cache_data.clear()  # Clear cache to ensure fresh data
-        return result
+        for t in tables:
+            try:
+                df = _execute_athena_query(f"SELECT COUNT(*) AS n FROM {t}")
+                counts[t] = int(df["n"].iloc[0]) if not df.empty else 0
+            except Exception:
+                counts[t] = 0
+        return DataSourceStatus(
+            "athena", True,
+            f"Connected to Athena database '{ATHENA_DATABASE}' "
+            f"(region {AWS_REGION}). Kaggle WC26 dataset backed by S3 "
+            f"at s3://wc2026-simulation-data/kaggle_wc26/.",
+            counts,
+        )
     except Exception as e:
-        import streamlit as st
-        error_msg = f"Athena error in get_teams(): {str(e)[:200]}"
-        st.error(f"⚠️ Athena query failed: {str(e)[:100]}")
-        st.warning(f"Using mock data (6 teams) instead of 48 teams")
-        print(error_msg)
-        return _get_mock_teams()
+        return DataSourceStatus("athena_error", False, f"Athena connection failed: {str(e)[:150]}", None)
 
-def get_players() -> pd.DataFrame:
-    """
-    Fetch players data from v_real_player_rows_enriched_v8.
-    
-    SQL Query:
-    SELECT 
-        player_name, nation_code, position, club_team, league,
-        goals, assists, goals_assists, xg, xa,
-        minutes, matches_played, age
-    FROM "worldcup_2026"."v_real_player_rows_enriched_v8"
-    WHERE nation_code IN (SELECT DISTINCT fifa_code FROM "worldcup_2026"."v_teams_clean")
-    ORDER BY goals DESC, assists DESC
-    LIMIT 500
-    
-    Returns columns: player_name, nation_code, position, club_team, league,
-                     goals, assists, goals_assists, xg, xa, minutes, matches_played, age
-    
-    Expected rows: ~500 players (top scorers from World Cup nations)
-    """
-    query = f"""
-    SELECT 
-        player_name, nation_code, position, club_team, league,
-        goals, assists, goals_assists, xg, xa,
-        minutes, matches_played, age
-    FROM "{ATHENA_DATABASE}"."v_real_player_rows_enriched_v8"
-    WHERE nation_code IN (SELECT DISTINCT fifa_code FROM "{ATHENA_DATABASE}"."v_teams_clean")
-    ORDER BY goals DESC, assists DESC
-    LIMIT 500
-    """
-    try:
-        result = _execute_readonly_query(query)
-        import streamlit as st
-        st.cache_data.clear()
-        return result
-    except Exception as e:
-        import streamlit as st
-        error_msg = f"Athena error in get_players(): {str(e)[:200]}"
-        st.error(f"⚠️ Athena query failed: {str(e)[:100]}")
-        st.warning(f"Using mock data (6 players) instead of 500 players")
-        print(error_msg)
-        return _get_mock_players()
 
-def get_matches() -> pd.DataFrame:
-    """
-    Fetch match schedule from v_team_schedule.
-    
-    SQL Query:
-    SELECT 
-        match_number, match_date, stage, group_name,
-        team, opponent, venue, city, status
-    FROM "worldcup_2026"."v_team_schedule"
-    ORDER BY match_date, match_number
-    
-    Returns columns: match_number, match_date, stage, group_name,
-                     team, opponent, venue, city, status
-    
-    Expected rows: 208 matches (group stage + knockout)
-    """
-    query = f"""
-    SELECT 
-        match_number, match_date, stage, group_name,
-        team, opponent, venue, city, status
-    FROM "{ATHENA_DATABASE}"."v_team_schedule"
-    ORDER BY match_date, match_number
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_matches(): {e}")
-        return _get_mock_matches()
+# ===========================================================================
+# Loads — every page calls these. Each one queries a Kaggle-backed Athena view.
+# ===========================================================================
 
-def get_predictions() -> pd.DataFrame:
-    """
-    Fetch championship predictions from v_winner_prediction_dashboard_v15_live_10m.
-    
-    SQL Query:
-    SELECT 
-        team_name, fifa_code, group_name, confederation,
-        championship_probability_pct, final_probability_pct,
-        semifinal_probability_pct, quarterfinal_probability_pct,
-        round16_probability_pct, winner_rank, model_method,
-        elo_rating, generated_at
-    FROM "worldcup_2026"."v_winner_prediction_dashboard_v15_live_10m"
-    ORDER BY winner_rank
-    
-    Returns columns: team_name, fifa_code, group_name, confederation,
-                     championship_probability_pct, final_probability_pct,
-                     semifinal_probability_pct, quarterfinal_probability_pct,
-                     round16_probability_pct, winner_rank, model_method,
-                     elo_rating, generated_at
-    
-    Expected rows: 48 teams
-    """
-    query = f"""
-    SELECT 
-        team_name, fifa_code, group_name, confederation,
-        championship_probability_pct, final_probability_pct,
-        semifinal_probability_pct, quarterfinal_probability_pct,
-        round16_probability_pct, winner_rank, model_method,
-        elo_rating, generated_at
-    FROM "{ATHENA_DATABASE}"."v_winner_prediction_dashboard_v15_live_10m"
-    ORDER BY winner_rank
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_predictions(): {e}")
-        return _get_mock_predictions()
+def get_real_wc26_data_source_status() -> DataSourceStatus:
+    """Alias for get_data_source_status — the dashboard's health-check call."""
+    return get_data_source_status()
+
+
+# ----- Tournament (Overview page) -----------------------------------------
 
 def get_tournament_overview() -> pd.DataFrame:
-    """Tournament-level KPIs from looker overview table. Falls back to mock."""
-    query = f"""
-    SELECT simulation_runs, team_count, predicted_champion,
-           predicted_champion_probability, second_favorite,
-           second_favorite_probability, champion_gap_probability,
-           total_group_fixtures, completed_locked_fixtures,
-           remaining_group_fixtures
-    FROM "{ATHENA_DATABASE}"."looker_wc26_overview_kpis_v15_live_10m"
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_tournament_overview(): {e}")
-        return pd.DataFrame([{
-            "simulation_runs": 10_000_000,
-            "team_count": 48,
-            "predicted_champion": "Spain",
-            "predicted_champion_probability": 15.35,
-            "second_favorite": "France",
-            "second_favorite_probability": 9.09,
-            "champion_gap_probability": 6.26,
-            "total_group_fixtures": 72,
-            "completed_locked_fixtures": 0,
-            "remaining_group_fixtures": 72,
-        }])
-
-def get_team_attributes() -> pd.DataFrame:
-    """Per-team tactical/strength attributes (hybrid FC/plElo)."""
-    query = f"""
-    SELECT team_name, fifa_code, group_name, continent, confederation,
-           elo_rating, total_market_value_eur, market_value_index,
-           vfc2_hybrid_power_score, real_world_score, fc_eye_test_score,
-           avg_ovr_top23, avg_ovr_top11, best_player_ovr,
-           gk_strength, defense_strength, midfield_strength, attack_strength,
-           top23_goals, top23_assists, top23_xg, top23_xa,
-           goalkeeper_save_rate, avg_club_last10_points_per_match,
-           real_player_performance_score
-    FROM "{ATHENA_DATABASE}"."ml_fc_real_hybrid_team_attributes_vfc_2"
-    WHERE vfc2_hybrid_power_score IS NOT NULL
-    ORDER BY vfc2_hybrid_power_score DESC
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_team_attributes(): {e}")
-        return pd.DataFrame()
-
-def get_stage_probabilities() -> pd.DataFrame:
-    """Stage-by-stage advancement probabilities."""
-    query = f"""
-    SELECT * FROM "{ATHENA_DATABASE}"."v_stage_probability_dashboard_v15_live_10m"
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_stage_probabilities(): {e}")
-        return pd.DataFrame()
-
-def get_player_tournament_stats() -> pd.DataFrame:
-    """Per-tournament WC26 player stats (goals/assists). Falls back to season totals."""
-    # The Athena view v_real_player_rows_enriched_v8 doesn't carry per-tournament
-    # WC26 stats. Use the club-season row (the page treats it as proxy goals/assists)
-    # filtered to World Cup nations.
-    query = f"""
-    SELECT player_name, nation_code, position, club_team, league,
-           goals, assists, minutes, matches_played
-    FROM "{ATHENA_DATABASE}"."v_real_player_rows_enriched_v8"
-    WHERE nation_code IN (SELECT fifa_code FROM "{ATHENA_DATABASE}"."v_teams_clean")
-    ORDER BY goals DESC, assists DESC
-    LIMIT 200
-    """
-    try:
-        df = _execute_readonly_query(query)
-        if df.empty:
-            return pd.DataFrame(columns=["player_name", "wc26_goals", "wc26_assists"])
-        # Rename season stats -> wc26_ placeholder columns the page expects
-        df = df.rename(columns={
-            "goals": "wc26_goals",
-            "assists": "wc26_assists",
-            "matches_played": "wc26_matches",
-        })
-        for col in ("wc26_goals", "wc26_assists", "wc26_matches"):
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
-        return df[["player_name", "wc26_goals", "wc26_assists"]]
-    except Exception as e:
-        print(f"Athena error in get_player_tournament_stats(): {e}")
-        return pd.DataFrame(columns=["player_name", "wc26_goals", "wc26_assists"])
-
-
-def get_match_predictions() -> pd.DataFrame:
-    fixture_view = "ml_group_fixture_predictions_v15_live_match_calibrated"
-    query = f"SELECT * FROM \"{ATHENA_DATABASE}\".\"{fixture_view}\""
-    try:
-        df = _execute_readonly_query(query)
-        # Map Athena column names -> what matches.py expects
-        rename = {
-            "team_a_win_probability": "win_probability",
-            "team_a_loss_probability": "loss_probability",
-            "draw_probability": "draw_probability",
-        }
-        for src, dst in rename.items():
-            if src in df.columns and dst not in df.columns:
-                df[dst] = df[src]
-        # 1 - win_probability - draw_probability ~= loss_probability
-        if "win_probability" in df.columns and "draw_probability" in df.columns and "loss_probability" not in df.columns:
-            df["loss_probability"] = (1.0 - pd.to_numeric(df["win_probability"], errors="coerce").fillna(0)
-                                      - pd.to_numeric(df["draw_probability"], errors="coerce").fillna(0)).clip(lower=0)
-        return df
-    except Exception as e:
-        print(f"Athena error in get_match_predictions(): {e}")
-        return pd.DataFrame()
-
-
-def get_team_match_results() -> pd.DataFrame:
-    """Per-team goals for/against from real match results (team_a and team_b perspectives)."""
-    query = f"""
-    SELECT team_a AS team_name,
-           CAST(actual_team_a_score AS BIGINT) AS goals_for,
-           CAST(actual_team_b_score AS BIGINT) AS goals_against
-    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
-    WHERE actual_team_a_score IS NOT NULL
-    UNION ALL
-    SELECT team_b AS team_name,
-           CAST(actual_team_b_score AS BIGINT) AS goals_for,
-           CAST(actual_team_a_score AS BIGINT) AS goals_against
-    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
-    WHERE actual_team_a_score IS NOT NULL
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_team_match_results(): {e}")
-        return pd.DataFrame()
+    """1 row of tournament KPIs (total_matches, total_goals, avg_goals_per_match,
+    winner, runner_up, final_score, result_type, final_date, final_venue, final_city)."""
+    return _execute_readonly_query("SELECT * FROM v_tournament_summary")
 
 
 def get_match_outcome_summary() -> pd.DataFrame:
-    """Counts of match outcomes (wins/draws/losses for team_a) plus total matches."""
-    query = f"""
-    SELECT COUNT(*) AS total_matches,
-           SUM(CASE WHEN actual_result_label = 'A_WIN' THEN 1 ELSE 0 END) AS team_a_wins,
-           SUM(CASE WHEN actual_result_label = 'B_WIN' THEN 1 ELSE 0 END) AS team_b_wins,
-           SUM(CASE WHEN actual_result_label = 'DRAW' THEN 1 ELSE 0 END) AS draws,
-           SUM(CAST(actual_team_a_score AS BIGINT) + CAST(actual_team_b_score AS BIGINT)) AS total_goals,
-           ROUND(AVG(CAST(actual_team_a_score AS BIGINT) + CAST(actual_team_b_score AS BIGINT)), 2) AS avg_goals_per_match
-    FROM "{ATHENA_DATABASE}"."ml_group_fixture_predictions_v15_live_match_calibrated"
-    WHERE actual_team_a_score IS NOT NULL
-    """
-    try:
-        return _execute_readonly_query(query)
-    except Exception as e:
-        print(f"Athena error in get_match_outcome_summary(): {e}")
-        return pd.DataFrame()
+    """Per-stage outcome counts (matches, home_wins, away_wins, draws, goals),
+    plus one Total row."""
+    return _execute_readonly_query("SELECT * FROM v_outcome_counts")
 
 
-# Backward compatibility aliases
-get_mock_teams = get_teams
-get_mock_players = get_players
-get_mock_matches = get_matches
-get_mock_predictions = get_predictions
-# get_player_tournament_stats is defined above with its own implementation;
-# do NOT re-alias it to get_players (that overwrites the proper version).
+def get_real_wc26_outcome_counts() -> pd.DataFrame:
+    """Alias for get_match_outcome_summary — backward-compatible name."""
+    return get_match_outcome_summary()
 
-# ============================================================================
-# MOCK DATA FALLBACK (when Athena unavailable)
-# ============================================================================
 
-def _get_mock_teams():
-    return pd.DataFrame([
-        {"team_name":"Spain","group_name":"H","winner_rank":1,"championship_probability":0.154,"elo_rating":2212,"total_market_value_eur":3427975000,"contender_tier":"Top 5"},
-        {"team_name":"France","group_name":"I","winner_rank":2,"championship_probability":0.091,"elo_rating":2107,"total_market_value_eur":4083000000,"contender_tier":"Top 5"},
-        {"team_name":"Argentina","group_name":"J","winner_rank":3,"championship_probability":0.083,"elo_rating":2158,"total_market_value_eur":1569025000,"contender_tier":"Top 5"},
-        {"team_name":"England","group_name":"L","winner_rank":4,"championship_probability":0.079,"elo_rating":2081,"total_market_value_eur":4251575000,"contender_tier":"Top 5"},
-        {"team_name":"Netherlands","group_name":"F","winner_rank":5,"championship_probability":0.068,"elo_rating":2024,"total_market_value_eur":2121375000,"contender_tier":"Top 5"},
-        {"team_name":"Germany","group_name":"E","winner_rank":6,"championship_probability":0.053,"elo_rating":1975,"total_market_value_eur":2380800000,"contender_tier":"Top 10"},
-    ])
+def get_real_wc26_summary() -> pd.DataFrame:
+    """Alias for get_tournament_overview — backward-compatible name."""
+    return get_tournament_overview()
 
-def _get_mock_players():
-    return pd.DataFrame([
-        {"player_name":"Robert Lewandowski","nation_code":"POL","position":"FW","club_team":"Bayern Munich","league":"GER","goals":41,"assists":7,"xg":32.1,"xa":4.8,"minutes":2458,"matches_played":29,"age":31},
-        {"player_name":"Luis Suárez","nation_code":"URU","position":"FW","club_team":"Barcelona","league":"ESP","goals":40,"assists":17,"xg":35.8,"xa":13.3,"minutes":3150,"matches_played":35,"age":28},
-        {"player_name":"Lionel Messi","nation_code":"ARG","position":"FW","club_team":"Barcelona","league":"ESP","goals":37,"assists":9,"xg":26.9,"xa":14.0,"minutes":2830,"matches_played":34,"age":29},
-        {"player_name":"Erling Haaland","nation_code":"NOR","position":"FW","club_team":"Manchester City","league":"EPL","goals":36,"assists":8,"xg":32.8,"xa":5.8,"minutes":2769,"matches_played":35,"age":22},
-        {"player_name":"Harry Kane","nation_code":"ENG","position":"FW","club_team":"Bayern Munich","league":"GER","goals":36,"assists":8,"xg":33.1,"xa":6.8,"minutes":2839,"matches_played":32,"age":30},
-        {"player_name":"Kylian Mbappé","nation_code":"FRA","position":"FW","club_team":"Paris Saint-Germain","league":"FRA","goals":33,"assists":7,"xg":None,"xa":None,"minutes":2343,"matches_played":29,"age":19},
-    ])
 
-def _get_mock_matches():
-    return pd.DataFrame([
-        {"match_number":1,"match_date":"2026-06-11","stage":"Group Stage","group_name":"A","team":"South Africa","opponent":"Mexico","venue":"Estadio Azteca","city":"Mexico City","status":"confirmed_group_fixture"},
-        {"match_number":2,"match_date":"2026-06-11","stage":"Group Stage","group_name":"A","team":"Czechia","opponent":"Korea Republic","venue":"Estadio Akron","city":"Guadalajara","status":"confirmed_group_fixture"},
-        {"match_number":3,"match_date":"2026-06-12","stage":"Group Stage","group_name":"B","team":"Bosnia and Herzegovina","opponent":"Canada","venue":"BMO Field","city":"Toronto","status":"confirmed_group_fixture"},
-        {"match_number":4,"match_date":"2026-06-12","stage":"Group Stage","group_name":"D","team":"United States","opponent":"Paraguay","venue":"SoFi Stadium","city":"Los Angeles","status":"confirmed_group_fixture"},
-        {"match_number":5,"match_date":"2026-06-13","stage":"Group Stage","group_name":"C","team":"Haiti","opponent":"Scotland","venue":"Gillette Stadium","city":"Boston","status":"confirmed_group_fixture"},
-        {"match_number":6,"match_date":"2026-06-13","stage":"Group Stage","group_name":"D","team":"Türkiye","opponent":"Australia","venue":"BC Place","city":"Vancouver","status":"confirmed_group_fixture"},
-    ])
+def get_knockout_bracket_summary() -> pd.DataFrame:
+    """32 knockout-stage matches with winner computed, ordered by stage depth."""
+    df = _execute_readonly_query("""
+        SELECT match_id, date, stage_name, home_team_name, away_team_name,
+               home_score, away_score, home_penalty_score, away_penalty_score,
+               result_type, stadium_name, city, country, winner
+        FROM v_knockout_bracket
+        ORDER BY
+            CASE stage_name
+                WHEN 'Round of 32' THEN 0
+                WHEN 'Round of 16' THEN 1
+                WHEN 'Quarter-finals' THEN 2
+                WHEN 'Semi-finals' THEN 3
+                WHEN 'Third-place match' THEN 4
+                WHEN 'Final' THEN 5
+                ELSE 99
+            END, date
+    """)
+    if not df.empty and "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    return df
 
-def _get_mock_predictions():
-    return pd.DataFrame([
-        {"team_name":"Spain","fifa_code":"ESP","group_name":"H","confederation":"UEFA","championship_probability_pct":15.35,"final_probability_pct":23.25,"semifinal_probability_pct":36.77,"quarterfinal_probability_pct":52.18,"round16_probability_pct":80.37,"winner_rank":1,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2212.23},
-        {"team_name":"France","fifa_code":"FRA","group_name":"I","confederation":"UEFA","championship_probability_pct":9.09,"final_probability_pct":16.14,"semifinal_probability_pct":26.83,"quarterfinal_probability_pct":40.99,"round16_probability_pct":73.52,"winner_rank":2,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2106.79},
-        {"team_name":"Argentina","fifa_code":"ARG","group_name":"J","confederation":"CONMEBOL","championship_probability_pct":8.27,"final_probability_pct":17.02,"semifinal_probability_pct":31.54,"quarterfinal_probability_pct":47.82,"round16_probability_pct":64.48,"winner_rank":3,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2157.70},
-        {"team_name":"England","fifa_code":"ENG","group_name":"L","confederation":"UEFA","championship_probability_pct":7.87,"final_probability_pct":14.20,"semifinal_probability_pct":23.04,"quarterfinal_probability_pct":35.55,"round16_probability_pct":53.47,"winner_rank":4,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2080.53},
-        {"team_name":"Netherlands","fifa_code":"NED","group_name":"F","confederation":"UEFA","championship_probability_pct":6.83,"final_probability_pct":13.14,"semifinal_probability_pct":25.30,"quarterfinal_probability_pct":48.25,"round16_probability_pct":68.28,"winner_rank":5,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":2024.24},
-        {"team_name":"Germany","fifa_code":"GER","group_name":"E","confederation":"UEFA","championship_probability_pct":5.27,"final_probability_pct":10.56,"semifinal_probability_pct":21.58,"quarterfinal_probability_pct":41.13,"round16_probability_pct":70.83,"winner_rank":6,"model_method":"V15_LIVE_FULL_MONTE_CARLO","elo_rating":1974.93},
-    ])
+
+# ----- Teams / Team Analytics page ---------------------------------------
+
+def get_teams() -> pd.DataFrame:
+    """48 teams with Elo, FIFA ranking, confederation, manager, market value,
+    and aggregated WC26 goals/assists — ready for the Teams page."""
+    return _execute_readonly_query("""
+        SELECT team_id, team_name, fifa_code, group_letter, confederation,
+               fifa_ranking_pre_tournament, elo_rating, manager_name,
+               squad_market_value_eur, wc26_goals, wc26_assists
+        FROM v_team_strength
+        ORDER BY elo_rating DESC
+    """)
+
+
+def get_team_strength() -> pd.DataFrame:
+    """Alias for get_teams — explicit name for the page that used to call
+    get_real_wc26_team_strength via the pandas layer."""
+    return get_teams()
+
+
+def get_real_wc26_team_strength() -> pd.DataFrame:
+    """Alias — backward-compatible name."""
+    return get_teams()
+
+
+def get_team_stats() -> pd.DataFrame:
+    """Per-team goals-for/against/W/D/L/GD from the real 104 matches."""
+    return _execute_readonly_query("""
+        SELECT team, matches, goals_for, goals_against,
+               W, D, L, goal_difference
+        FROM v_team_stats
+        ORDER BY goals_for DESC, goal_difference DESC
+    """)
+
+
+def get_real_wc26_team_stats() -> pd.DataFrame:
+    """Alias for get_team_stats — backward-compatible name."""
+    return get_team_stats()
+
+
+def get_match_team_stats_agg() -> pd.DataFrame:
+    """Per-team avg in-match stats (possession, shots, corners, etc.) aggregated
+    across the WC26 tournament — used by the Teams page tactical radar."""
+    return _execute_readonly_query("""
+        SELECT team_id, team_name, matches,
+               avg_possession, avg_shots, avg_shots_on_target,
+               avg_corners, avg_fouls, avg_offsides, avg_saves
+        FROM v_match_team_stats_agg
+        ORDER BY team_name
+    """)
+
+
+def get_real_wc26_match_team_stats() -> pd.DataFrame:
+    """Alias for get_match_team_stats_agg — backward-compatible name."""
+    return get_match_team_stats_agg()
+
+
+# ----- Matches page ------------------------------------------------------
+
+def get_matches() -> pd.DataFrame:
+    """All 104 matches from matches_detailed with stage, scores, xG, venue,
+    referee, POTM."""
+    return _execute_readonly_query("""
+        SELECT match_id, date, kickoff_time_utc, stage_name, stadium_name,
+               city, country, home_team_name, home_fifa_code,
+               away_team_name, away_fifa_code,
+               home_score, away_score, home_penalty_score, away_penalty_score,
+               status, result_type, home_xg, away_xg,
+               home_goalkeeper, away_goalkeeper,
+               player_of_the_match_name, referee_name
+        FROM matches_detailed
+        ORDER BY date, match_id
+    """)
+
+
+def get_real_wc26_matches() -> pd.DataFrame:
+    """Alias for get_matches — backward-compatible name."""
+    return get_matches()
+
+
+def get_venues() -> pd.DataFrame:
+    """16 venues with capacity, lat/lon, elevation."""
+    return _execute_readonly_query("""
+        SELECT venue_id, stadium_name, city, country,
+               capacity, latitude, longitude, elevation_meters
+        FROM venues
+        ORDER BY capacity DESC
+    """)
+
+
+def get_real_wc26_venues() -> pd.DataFrame:
+    """Alias for get_venues — backward-compatible name."""
+    return get_venues()
+
+
+def get_knockout_bracket() -> pd.DataFrame:
+    """Knockout-stage matches with computed winner (alias of get_knockout_bracket_summary)."""
+    return get_knockout_bracket_summary()
+
+
+def get_real_wc26_knockout_bracket() -> pd.DataFrame:
+    """Alias — backward-compatible name."""
+    return get_knockout_bracket_summary()
+
+
+# ----- Players page -------------------------------------------------------
+
+def get_players() -> pd.DataFrame:
+    """1,248 players with squad info (position, club, market value, caps, height)."""
+    return _execute_readonly_query("""
+        SELECT p.player_id, p.team_id, t.team_name, p.player_name,
+               p.position, p.club_team, p.market_value_eur, p.caps,
+               p.date_of_birth, p.height_cm, p.goals
+        FROM squads_and_players p
+        JOIN teams t ON t.team_id = p.team_id
+        ORDER BY p.market_value_eur DESC
+    """)
+
+
+def get_player_tournament_stats() -> pd.DataFrame:
+    """Per-player WC26 in-tournament stats (goals, assists, cards, minutes, xG)."""
+    return _execute_readonly_query("""
+        SELECT player_id, player_name, team_name, confederation, position,
+               matches_played, matches_started, minutes_played,
+               goals, assists, yellow_cards, red_cards,
+               penalty_goals, own_goals, clean_sheets, saves,
+               goals_conceded, shots, shots_on_target, average_rating
+        FROM v_player_stats_full
+        ORDER BY goals DESC, assists DESC
+    """)
+
+
+def get_real_wc26_players() -> pd.DataFrame:
+    """Alias for get_players."""
+    return get_players()
+
+
+def get_real_wc26_player_stats() -> pd.DataFrame:
+    """Alias for get_player_tournament_stats."""
+    return get_player_tournament_stats()
+
+
+# ----- Per-team xG aggregation (Overview page) ---------------------------
+
+def get_xg_by_team() -> pd.DataFrame:
+    """Per-team expected goals for/against aggregated across all WC26 matches.
+    Computed from matches_detailed (which has home_xg, away_xg per match) by
+    unfolding the home/away rows into a team-perspective view."""
+    return _execute_readonly_query("""
+        WITH home AS (
+            SELECT home_team_name AS team, home_xg AS xg_for, away_xg AS xg_against
+            FROM matches_detailed
+        ),
+        away AS (
+            SELECT away_team_name AS team, away_xg AS xg_for, home_xg AS xg_against
+            FROM matches_detailed
+        )
+        SELECT team,
+               COUNT(*) AS matches,
+               SUM(xg_for) AS xg_for,
+               SUM(xg_against) AS xg_against
+        FROM (SELECT * FROM home UNION ALL SELECT * FROM away)
+        GROUP BY team
+        ORDER BY xg_for DESC
+    """)
+
+
+def get_real_wc26_xg_by_team() -> pd.DataFrame:
+    """Alias for get_xg_by_team."""
+    return get_xg_by_team()
+
+
+# ----- Referees (Matches page) -------------------------------------------
+
+def get_referees() -> pd.DataFrame:
+    """28 referees with country and avg cards per game."""
+    return _execute_readonly_query("""
+        SELECT referee_id, name, country, avg_cards_per_game
+        FROM referees
+        ORDER BY avg_cards_per_game DESC
+    """)
+
+
+def get_real_wc26_referees() -> pd.DataFrame:
+    """Alias for get_referees."""
+    return get_referees()
+
+
+# ----- Convenience aliases used by the page files -------------------------
+
+# teams.py historical alias: `get_real_wc26_teams` ≠ `get_real_wc26_team_strength`
+get_real_wc26_teams = get_teams
+# matches.py historical alias: `get_real_wc26_matches_enriched` was the
+# pre-Athena pandas "matches_detailed + venue + ref + player_name" join —
+# Athena's v_matches_enriched view does the same wide-form pivot, joining
+# match_team_stats onto matches in home_/away_ columns.
+def get_real_wc26_matches_enriched() -> pd.DataFrame:
+    """Wide-form matches joined to per-team in-match stats (possession,
+    shots, corners, fouls, saves, venue capacity/lat/lon, etc.).
+    Columns expected by matches.py: home_possession, away_possession,
+    home_shots, away_shots, home_shots_on_target, away_shots_on_target,
+    home_corners, away_corners, home_fouls, away_fouls, home_saves,
+    away_saves, venue_capacity, venue_latitude, venue_longitude."""
+    return _execute_readonly_query("""
+        SELECT match_id, date, kickoff_time_utc, stage_name,
+               home_team_name, home_fifa_code, home_team_id,
+               away_team_name, away_fifa_code, away_team_id,
+               home_score, away_score,
+               home_penalty_score, away_penalty_score,
+               status, result_type, home_xg, away_xg,
+               home_goalkeeper, away_goalkeeper,
+               player_of_the_match_name, referee_name,
+               stadium_name, city, country,
+               venue_capacity, venue_latitude, venue_longitude, venue_elevation,
+               home_possession, home_shots, home_shots_on_target,
+               home_corners, home_fouls, home_saves, home_potm,
+               away_possession, away_shots, away_shots_on_target,
+               away_corners, away_fouls, away_saves, away_potm
+        FROM v_matches_enriched
+        ORDER BY date, match_id
+    """)
+
+
+# ---------------------------------------------------------------------------
+# Retired loaders — kept as stubs that raise, to catch any stale callers.
+# The pre-tournament Monte Carlo simulations are obsolete now that the
+# tournament is over. Dataflow should go through the views above instead.
+# ---------------------------------------------------------------------------
+def _retired(name: str):
+    def _stub(*a, **kw):
+        raise NotImplementedError(
+            f"{name}() is retired. The pre-tournament Monte Carlo simulation "
+            f"loaded by this function is obsolete now that the WC26 tournament "
+            f"is complete. Use the view-backed loaders above (get_team_strength, "
+            f"get_tournament_overview, get_knockout_bracket, etc.) instead."
+        )
+    return _stub
+
+
+get_predictions = _retired("get_predictions")
+get_team_attributes = _retired("get_team_attributes")
+get_stage_probabilities = _retired("get_stage_probabilities")
+get_match_predictions = _retired("get_match_predictions")
+get_team_match_results = _retired("get_team_match_results")

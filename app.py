@@ -5,11 +5,14 @@ PAGES=[st.Page("pages/overview.py",title="Tournament Overview"),st.Page("pages/t
 def build_navigation(): return st.navigation(PAGES)
 def main():
     st.sidebar.title("World Cup Analytics")
-    from data import athena as _athena_status
-    status = _athena_status.get_data_source_status()
+    from data.real_wc26 import get_real_wc26_data_source_status
+    status = get_real_wc26_data_source_status()
     if status.athena_enabled:
-        st.sidebar.success(f"Live data from Athena")
+        st.sidebar.success(f"Live data: AWS Athena ({status.mode})")
+        if status.tables_available:
+            n_tables = len(status.tables_available)
+            st.sidebar.caption(f"{n_tables} tables/views in worldcup_2026")
     else:
-        st.sidebar.info(f"Mock data mode: {status.note[:50]}")
+        st.sidebar.warning(f"Athena unavailable: {status.note[:80]}")
     build_navigation().run()
 if __name__=="__main__": main()
