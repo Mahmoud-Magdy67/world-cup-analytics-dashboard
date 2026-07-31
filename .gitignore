@@ -20,3 +20,7 @@ gcp_creds.json
 verification_report.md
 world_cup_migration_plan/
 .streamlit/secrets.toml
+# FBref exploration - dead-end (reverted to Kaggle-only)
+data/fbref/
+# Driver/agent scratch space
+downloaded_files/
