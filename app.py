@@ -16,3 +16,4 @@ def main():
         st.sidebar.info(f"📊 {status.note[:100]}")
     build_navigation().run()
 if __name__=="__main__": main()
+# deploy trigger: 2026-08-01
