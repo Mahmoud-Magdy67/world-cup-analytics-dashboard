@@ -13,6 +13,6 @@ def main():
             n_tables = len(status.tables_available)
             st.sidebar.caption(f"{n_tables} tables/views in worldcup_2026")
     else:
-        st.sidebar.warning(f"Athena unavailable: {status.note[:80]}")
+        st.sidebar.info(f"📊 {status.note[:100]}")
     build_navigation().run()
 if __name__=="__main__": main()
