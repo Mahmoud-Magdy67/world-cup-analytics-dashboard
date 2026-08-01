@@ -86,7 +86,9 @@ st.success(
 
 st.caption(
     "Data source: Kaggle — mominullptr/fifa-world-cup-2026-dataset (CC0 public domain). "
-    "104 matches / 308 goals / 2.96 goals per match. "
+    "104 matches / 308 goals (regulation + extra time) / 2.96 goals per match. "
+    "Penalty-shootout goals (25 across 4 shootouts) are excluded — they're a tiebreaker, not field goals, "
+    "matching the FIFA/ESPN/Wikipedia convention. Including them: 333 goals / 3.20 per match. "
     "All statistics on this page are the real, completed-tournament numbers."
 )
 

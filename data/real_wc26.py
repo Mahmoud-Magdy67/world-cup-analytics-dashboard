@@ -126,16 +126,21 @@ def get_real_wc26_summary() -> pd.DataFrame:
         final_venue = f.get("stadium_name", "")
         final_city = f.get("city", "")
 
-    # Total goals = team goals (308) + penalty shootout goals
+    # Tournament total goals = regulation + extra time only.
+    # Per the canonical FIFA/ESPN convention, penalty-shootout goals are a
+    # tiebreaker, not field goals, so we exclude the 25 PK Shootout Goal
+    # events. The PK count is exposed separately so the UI can show it.
     me = _read("match_events")
-    pk_goals = (me["event_type"] == "Penalty Shootout Goal").sum()
-    team_goals = (me["event_type"] == "Goal").sum()
-    total_goals = int(team_goals + pk_goals)
+    team_goals = int((me["event_type"] == "Goal").sum())      # 308
+    pk_goals = int((me["event_type"] == "Penalty Shootout Goal").sum())  # 25
+    total_goals = team_goals
     n_matches = int(len(md))
 
     return pd.DataFrame([{
         "total_matches": n_matches,
         "total_goals": total_goals,
+        "total_goals_with_pk": team_goals + pk_goals,           # 333 (full count incl. PK)
+        "penalty_shootout_goals": pk_goals,                     # 25 (tiebreaker only)
         "avg_goals_per_match": round(total_goals / n_matches, 2) if n_matches else 0.0,
         "winner": winner,
         "runner_up": runner,
