@@ -83,9 +83,8 @@ def get_real_wc26_data_source_status() -> DataSourceStatus:
         return DataSourceStatus(
             "kaggle_local",
             False,
-            "Reading directly from the Kaggle WC26 CSVs in data/kaggle_wc26/ "
-            "(mominullptr/fifa-world-cup-2026-dataset, CC0-1.0). "
-            "No AWS / network dependency.",
+            "Local Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0-1.0). "
+            "12 CSVs, 9,369 rows. No AWS / network dependency — fully self-contained.",
             counts,
         )
     except Exception as e:
