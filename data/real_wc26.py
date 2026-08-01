@@ -212,16 +212,26 @@ def get_real_wc26_team_strength() -> pd.DataFrame:
     t["wc26_goals"] = t["wc26_goals"].fillna(0).astype(int)
     t["wc26_assists"] = t["wc26_assists"].fillna(0).astype(int)
 
-    # Squad market value comes from match_prediction_features (per-match).
-    # The value is identical per team across all matches, so we take max (or first)
-    # NOT sum (which multiplies by number of matches played = ~8x too high).
-    mpf = _read("match_prediction_features")
-    home_val = mpf.groupby("home_team_id")["home_squad_total_value_eur"].max().rename("squad_market_value_eur_home")
-    away_val = mpf.groupby("away_team_id")["away_squad_total_value_eur"].max().rename("squad_market_value_eur_away")
-    t = t.merge(home_val, left_on="team_id", right_index=True, how="left")
-    t = t.merge(away_val, left_on="team_id", right_index=True, how="left")
-    t["squad_market_value_eur"] = t[["squad_market_value_eur_home", "squad_market_value_eur_away"]].max(axis=1)
-    t = t.drop(columns=["squad_market_value_eur_home", "squad_market_value_eur_away"])
+    # Squad market value: prefer teams.csv if present for this team
+    # (can be overridden with Transfermarkt-corrected values),
+    # else fall back to match_prediction_features.
+    if "squad_market_value_eur" in t.columns:
+        # Teams with NaN in teams.csv will fall back below
+        pass
+    else:
+        t["squad_market_value_eur"] = pd.NA
+
+    # Fill NaN values from match_prediction_features
+    has_val = t["squad_market_value_eur"].notna()
+    if not has_val.all():
+        mpf = _read("match_prediction_features")
+        home_val = mpf.groupby("home_team_id")["home_squad_total_value_eur"].max().rename("squad_market_value_eur_home")
+        away_val = mpf.groupby("away_team_id")["away_squad_total_value_eur"].max().rename("squad_market_value_eur_away")
+        t = t.merge(home_val, left_on="team_id", right_index=True, how="left")
+        t = t.merge(away_val, left_on="team_id", right_index=True, how="left")
+        fallback = t[["squad_market_value_eur_home", "squad_market_value_eur_away"]].max(axis=1)
+        t["squad_market_value_eur"] = t["squad_market_value_eur"].fillna(fallback)
+        t = t.drop(columns=["squad_market_value_eur_home", "squad_market_value_eur_away"])
 
     return t.sort_values("elo_rating", ascending=False).reset_index(drop=True)
 
