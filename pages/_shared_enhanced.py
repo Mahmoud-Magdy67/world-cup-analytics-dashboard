@@ -196,7 +196,10 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
             if os.path.exists(image_url):
                 with open(image_url, "rb") as image_file:
                     encoded_string = base64.b64encode(image_file.read()).decode()
-                st.markdown(f"<img src='data:image/png;base64,{encoded_string}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
+                # Detect MIME type from extension
+                ext = os.path.splitext(image_url)[1].lower()
+                mime = "image/svg+xml" if ext == ".svg" else "image/png"
+                st.markdown(f"<img src='data:{mime};base64,{encoded_string}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<img src='{image_url}' style='width: 80px; height: auto; max-width: 100%; border-radius: 12px; margin-top: 5px;'>", unsafe_allow_html=True)
         else:
