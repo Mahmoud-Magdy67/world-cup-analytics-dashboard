@@ -145,9 +145,17 @@ with col_k1:
 with col_k2:
     st.metric(f"{label_prefix}ELO", f"{kpi_df['elo_rating'].mean():.0f}")
 with col_k3:
-    val = kpi_df['total_market_value_eur'].sum() / 1e9
+    val = kpi_df['total_market_value_eur'].sum()
     squad_label = "Total Squad Value" if sel_team == "None" else f"{label_prefix}Squad Value"
-    st.metric(squad_label, f"€{val:.2f}B" if val > 0 else "N/A")
+    if val >= 1e9:
+        val_str = f"€{val/1e9:.2f}B"
+    elif val >= 1e6:
+        val_str = f"€{val/1e6:.0f}M"
+    elif val > 0:
+        val_str = f"€{val/1e3:.0f}K"
+    else:
+        val_str = "N/A"
+    st.metric(squad_label, val_str)
 with col_k4:
     st.metric(f"{label_prefix}WC26 Goals", f"{kpi_df['wc26_goals'].sum():.0f}")
 
