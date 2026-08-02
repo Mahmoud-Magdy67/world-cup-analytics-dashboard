@@ -244,11 +244,15 @@ def kpi_cards(items: List[Tuple[str, Any, Optional[str]]], cols: Optional[int] =
             )
 
 def info_card(title: str, content: str, icon: str = "ℹ️"):
-    """Create an info card with title and content."""
+    """Create an info card with title and content.
+    Converts markdown **bold** to <strong> for HTML rendering."""
+    import re
+    # Convert markdown **bold** to HTML <strong>
+    html_content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
     st.markdown(f"""
     <div class="info-card">
         <h4>{icon} {title}</h4>
-        <p>{content}</p>
+        <p>{html_content}</p>
     </div>
     """, unsafe_allow_html=True)
 
