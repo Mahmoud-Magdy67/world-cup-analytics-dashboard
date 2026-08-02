@@ -330,14 +330,38 @@ def get_real_wc26_player_summary() -> pd.DataFrame:
 
 
 def get_real_wc26_nation_contributions() -> pd.DataFrame:
-    """Per-team aggregate goals + assists (for nation-level contribution charts)."""
-    df = get_real_wc26_players()
-    agg = df.groupby(["team_name", "fifa_code", "confederation"]).agg(
-        tgoals=("wc26_goals", "sum"),
-        tassists=("wc26_assists", "sum"),
-        tcontributions=("goal_contribution", "sum"),
-        nplayers=("player_id", "size"),
-    ).reset_index()
+    """Per-team aggregate goals + assists (for nation-level contribution charts).
+
+    Goals and assists are aggregated from match_events with the third-place match
+    (match_id 103, 'France 4-6 England' — 10 goals, implausible for a 3rd-place
+    fixture in the Kaggle dataset) excluded. This keeps France/England totals
+    realistic. Player-level data in player_stats.csv still includes those goals
+    so individual totals are unchanged.
+    """
+    events_file = os.path.join(_DATA_DIR, "match_events.csv")
+    teams = pd.read_csv(_TEAMS_FILE)[["team_id", "team_name", "fifa_code", "confederation"]]
+    if os.path.exists(events_file):
+        ev = pd.read_csv(events_file)
+        # Exclude the implausible third-place match
+        ev = ev[ev["match_id"] != 103]
+        g = ev[ev["event_type"] == "Goal"].groupby("team_id").size().reset_index(name="tgoals")
+        a = ev[ev["event_type"] == "Assist"].groupby("team_id").size().reset_index(name="tassists")
+        agg = teams.merge(g, on="team_id", how="left").merge(a, on="team_id", how="left")
+        agg["tgoals"] = agg["tgoals"].fillna(0).astype(int)
+        agg["tassists"] = agg["tassists"].fillna(0).astype(int)
+    else:
+        # Fallback: aggregate from player_stats (includes implausible third-place goals)
+        df = get_real_wc26_players()
+        agg = df.groupby(["team_name", "fifa_code", "confederation"]).agg(
+            tgoals=("wc26_goals", "sum"),
+            tassists=("wc26_assists", "sum"),
+        ).reset_index()
+    # Add number of players per team
+    ps = pd.read_csv(_PLAYERS_FILE)[["player_id", "team_id"]]
+    nplayers = ps.groupby("team_id").size().reset_index(name="nplayers")
+    agg = agg.merge(nplayers, on="team_id", how="left")
+    agg["nplayers"] = agg["nplayers"].fillna(0).astype(int)
+    agg["tcontributions"] = agg["tgoals"] + agg["tassists"]
     return agg.sort_values(["tcontributions", "tgoals"], ascending=[False, False]).reset_index(drop=True)
 
 
