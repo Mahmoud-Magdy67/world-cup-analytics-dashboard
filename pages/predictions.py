@@ -36,14 +36,32 @@ if strength.empty or matches.empty:
 # ============================================================================
 # Derive the deepest stage each team reached
 # ============================================================================
-knockouts = matches[matches['stage_name'].isin(STAGE_ORDER)].copy()
+# Only true knockout rounds (exclude Group Stage)
+KO_STAGES = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third-place match', 'Final']
+KO_DEPTH = {name: i for i, name in enumerate(KO_STAGES)}  # R32=0 ... Final=5
+
+knockouts = matches[matches['stage_name'].isin(KO_STAGES)].copy()
+
+# Derive the winner of each match (no 'winner' column in the Kaggle data)
+def _match_winner(row):
+    h, a = row['home_score'], row['away_score']
+    if h > a:
+        return row['home_team_name']
+    if a > h:
+        return row['away_team_name']
+    # Penalty shootout
+    hp, ap = row.get('home_penalty_score'), row.get('away_penalty_score')
+    if pd.notna(hp) and pd.notna(ap):
+        return row['home_team_name'] if hp > ap else row['away_team_name']
+    return None
+
+knockouts['winner'] = knockouts.apply(_match_winner, axis=1)
+
 # A team "reached" the deepest stage where they appear in a knockout match.
 home_reached = knockouts[['home_team_name', 'stage_name']].rename(columns={'home_team_name': 'team_name'})
 away_reached = knockouts[['away_team_name', 'stage_name']].rename(columns={'away_team_name': 'team_name'})
 reached = pd.concat([home_reached, away_reached], ignore_index=True)
-# Map each stage to an ordinal depth — higher = deeper
-stage_depth = {name: i for i, name in enumerate(STAGE_ORDER)}  # R32=0, R16=1, QF=2, SF=3, Third=4, Final=5
-reached['depth'] = reached['stage_name'].map(stage_depth)
+reached['depth'] = reached['stage_name'].map(KO_DEPTH)
 deepest = reached.groupby('team_name')['depth'].max().reset_index().rename(columns={'depth': 'deepest_depth'})
 
 # Teams not in any knockout match exited at Group Stage
@@ -51,28 +69,30 @@ all_teams = strength[['team_name']].copy()
 all_teams = all_teams.merge(deepest, on='team_name', how='left')
 all_teams['deepest_depth'] = all_teams['deepest_depth'].fillna(-1)  # -1 = Group Stage exit
 
-# Invert depth to a label: 5 = Champion (won Final), 4 = Finalist (lost Final), 3 = Third-place match, etc.
-# But "Champion" requires knowing the Final winner.
+# Determine champion and runner-up from the Final
 final_row = knockouts[knockouts['stage_name'] == 'Final']
 if not final_row.empty:
-    champion = final_row['winner'].iloc[0] if 'winner' in final_row.columns else None
-    runner_up = final_row['home_team_name'].iloc[0] if final_row['away_team_name'].iloc[0] == champion else final_row['away_team_name'].iloc[0]
+    fr = final_row.iloc[0]
+    champion = _match_winner(fr)
+    runner_up = fr['away_team_name'] if fr['home_team_name'] == champion else fr['home_team_name']
 else:
     champion = runner_up = None
 
+# Map deepest_depth → human label
 def outcome_label(row):
     if row['team_name'] == champion:
         return 'Champion'
     if row['team_name'] == runner_up:
         return 'Finalist'
-    d = row['deepest_depth']
+    d = int(row['deepest_depth'])
     if d == -1:
         return 'Group Stage'
-    return STAGE_ORDER[int(d)]
+    return KO_STAGES[d]
 
 all_teams['actual_outcome'] = all_teams.apply(outcome_label, axis=1)
-# Order outcomes for chart axes
-outcome_order = ['Champion', 'Finalist', 'Third-place match', 'Semifinals', 'Quarter-finals', 'Round of 16', 'Round of 32', 'Group Stage']
+# Order outcomes for chart axes (Champion → Group Stage)
+outcome_order = ['Champion', 'Finalist', 'Third-place match', 'Semi-finals',
+                 'Quarter-finals', 'Round of 16', 'Round of 32', 'Group Stage']
 outcome_order = [o for o in outcome_order if o in all_teams['actual_outcome'].unique().tolist()] or list(all_teams['actual_outcome'].unique())
 
 # Merge strength + actual outcome
@@ -87,12 +107,12 @@ df['elo_rank'] = df.index + 1
 def expected_bucket(rank, n_teams, outcome_list):
     # Equal-sized buckets aligned to outcome order (Champion first)
     bucket_size = max(1, n_teams // len(outcome_list))
-    idx = min(len(outcome_list) - 1, rank // bucket_size)
+    idx = min(len(outcome_list) - 1, (rank - 1) // bucket_size)
     return outcome_list[idx]
 df['expected_outcome'] = df['elo_rank'].apply(lambda r: expected_bucket(r, len(df), outcome_order))
 
 # Did the team outperform or underperform their Elo bucket?
-out_depth = {o: i for i, o in enumerate(outcome_order)}  # Champion=0 (shallowest depth number), Group=7
+out_depth = {o: i for i, o in enumerate(outcome_order)}  # Champion=0 (shallowest), Group=7
 df['expected_depth_idx'] = df['expected_outcome'].map(out_depth)
 df['actual_depth_idx'] = df['actual_outcome'].map(out_depth)
 # Positive delta = team went further than Elo bucket predicted
@@ -241,7 +261,6 @@ st.dataframe(
 )
 
 st.caption(
-    "Data source: Kaggle mominullptr/fifa-world-cup-2026-dataset (CC0). "
     "'Elo Expected' is a simple rank-quartile bucketing, NOT a probabilistic model — "
     "championship probability models from Athena have been retired in favour of this "
     "transparent Elo / FIFA-rank strength view."

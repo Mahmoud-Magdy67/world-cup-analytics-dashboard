@@ -28,10 +28,23 @@ def load_custom_css():
         background-attachment: fixed !important;
     }
     
-    /* Fix sidebar arrow rendering */
+    /* Fix sidebar collapse/expand icon — use a proper hamburger menu */
+    [data-testid="collapsedControl"] {
+        /* Streamlit renders an SVG arrow inside; replace visuals with CSS */
+    }
     [data-testid="collapsedControl"] svg {
-        fill: #000000 !important;
-        color: #000000 !important;
+        display: none !important;
+    }
+    /* Inject a hamburger icon via ::before */
+    [data-testid="collapsedControl"]::before {
+        content: "";
+        display: inline-block;
+        width: 22px;
+        height: 3px;
+        background: #000000;
+        box-shadow: 0 6px 0 #000000, 0 12px 0 #000000;
+        margin: 8px 4px;
+        border-radius: 2px;
     }
     
     
@@ -42,9 +55,9 @@ def load_custom_css():
     }
     
     /* Explicitly protect material icons so arrows don't break */
-    .material-icons, [class^="st-"], svg, path {
-        font-family: inherit;
-        letter-spacing: normal;
+    .material-icons, [class^="st-"] {
+        font-family: inherit !important;
+        letter-spacing: normal !important;
     }
     
     h1, h2, h3, h4, h5, h6 {

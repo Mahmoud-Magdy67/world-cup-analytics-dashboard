@@ -677,7 +677,5 @@ with col2:
                 f"to {filtered['date'].max().strftime('%b %d, %Y')}")
 
 st.caption(
-    "Data sourced from Kaggle: mominullptr/fifa-world-cup-2026-dataset (CC0) | "
-    "104 matches · 308 goals · 2.96 avg/match | "
     "Final: Spain 1-0 Argentina (AET), 2026-07-19, MetLife Stadium"
 )

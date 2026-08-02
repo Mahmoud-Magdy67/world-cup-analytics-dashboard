@@ -301,6 +301,5 @@ License: CC0: Public Domain Dedication.
 """, language="bibtex")
 
 st.caption(
-    f"Documentation last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')} | "
-    "Data source: Kaggle mominullptr/fifa-world-cup-2026-dataset (CC0)."
+    f"Documentation last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
 )

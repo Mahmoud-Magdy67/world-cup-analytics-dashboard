@@ -20,6 +20,217 @@ _PLAYERS_FILE = os.path.join(_DATA_DIR, "player_stats.csv")
 _TEAMS_FILE = os.path.join(_DATA_DIR, "teams.csv")
 _SQUADS_FILE = os.path.join(_DATA_DIR, "squads_and_players.csv")
 
+# ---------------------------------------------------------------------------
+# Famous-name overrides — maps full legal name (Kaggle) → common name (Wikipedia)
+# Only players whose Kaggle name differs from their famous name are listed.
+# ---------------------------------------------------------------------------
+_FAMOUS_NAME_OVERRIDES: dict[str, str] = {
+    # Argentina
+    "Lionel Andrés Messi": "Lionel Messi",
+    # France
+    "Masour Ousmane Dembele": "Ousmane Dembele",
+    "Michael Akpovie Olise": "Michael Olise",
+    "Kylian Mbappe": "Kylian Mbappé",
+    # Norway
+    "Erling Braut Haaland": "Erling Haaland",
+    # England
+    "Harry Edward Kane": "Harry Kane",
+    "Jude Victor William Bellingham": "Jude Bellingham",
+    "Kai Lukas Havertz": "Kai Havertz",
+    "Cody Mathès Gakpo": "Cody Gakpo",
+    "Marcus Rashford": "Marcus Rashford",
+    "Phil Foden": "Phil Foden",
+    "Bukayo Saka": "Bukayo Saka",
+    "Declan Rice": "Declan Rice",
+    "John Stones": "John Stones",
+    "Jordan Pickford": "Jordan Pickford",
+    # Netherlands
+    "Virgil van Dijk": "Virgil van Dijk",
+    "Frenkie de Jong": "Frenkie de Jong",
+    "Memphis Depay": "Memphis Depay",
+    # Spain
+    "Mikel Oyarzabal": "Mikel Oyarzabal",
+    "Lamine Yamal": "Lamine Yamal",
+    "Nico Williams": "Nico Williams",
+    "Dani Olmo": "Dani Olmo",
+    "Pedri": "Pedri",
+    "Gavi": "Gavi",
+    "Aymeric Laporte": "Aymeric Laporte",
+    "Rodri": "Rodri",
+    "Alvaro Morata": "Álvaro Morata",
+    "Unai Simon": "Unai Simón",
+    # Brazil
+    "Vinicius Junior": "Vinícius Júnior",
+    "Endrick": "Endrick",
+    "Rodrygo": "Rodrygo",
+    "Casemiro": "Casemiro",
+    "Marquinhos": "Marquinhos",
+    "Alisson Becker": "Alisson Becker",
+    # Portugal
+    "Cristiano Ronaldo": "Cristiano Ronaldo",
+    "Bruno Miguel Borges Fernandes": "Bruno Fernandes",
+    "Bernardo Silva": "Bernardo Silva",
+    "Ruben Dias": "Rúben Dias",
+    "Joao Felix": "João Félix",
+    "Rafael Leao": "Rafael Leão",
+    "Diogo Jota": "Diogo Jota",
+    "Nuno Mendes": "Nuno Mendes",
+    # Belgium
+    "Romelu Lukaku": "Romelu Lukaku",
+    "Kevin De Bruyne": "Kevin De Bruyne",
+    "Charles Marc De Ketelaere": "Charles De Ketelaere",
+    "Jeremy Doku": "Jérémy Doku",
+    "Amadou Onana": "Amadou Onana",
+    "Youri Tielemans": "Youri Tielemans",
+    # Germany
+    "Joshua Kimmich": "Joshua Kimmich",
+    "Ilkay Gündogan": "İlkay Gündoğan",
+    "Kai Lukas Havertz": "Kai Havertz",
+    "Florian Wirtz": "Florian Wirtz",
+    "Jamal Musiala": "Jamal Musiala",
+    "Antonio Rüdiger": "Antonio Rüdiger",
+    "Niclas Füllkrug": "Niclas Füllkrug",
+    "Deniz Undav": "Deniz Undav",
+    "Jonathan Tah": "Jonathan Tah",
+    # Italy
+    "Federico Chiesa": "Federico Chiesa",
+    "Nicolo Barella": "Nicolò Barella",
+    "Gianluigi Donnarumma": "Gianluigi Donnarumma",
+    "Alessandro Bastoni": "Alessandro Bastoni",
+    # Croatia
+    "Luka Modric": "Luka Modrić",
+    "Mateo Kovacic": "Mateo Kovačić",
+    "Marcelo Brozovic": "Marcelo Brozović",
+    "Ivan Perisic": "Ivan Perišić",
+    # Mexico
+    "Julián Andrés Quinones": "Julián Quiñones",
+    "Santiago Tomás Gimenez": "Santiago Giménez",
+    "Edson Omar Alvarez": "Edson Álvarez",
+    "Jorge Eduardo Sanchez": "Jorge Sánchez",
+    "César Jasib Montes": "César Montes",
+    "Jesús Daniel Gallardo": "Jesús Gallardo",
+    "Luis Gerardo Chavez": "Luis Chávez",
+    "Roberto Carlos Alvarado": "Roberto Alvarado",
+    "Francisco Guillermo Ochoa": "Guillermo Ochoa",
+    "Raúl Alonso Jimenez": "Raúl Jiménez",
+    "Ernesto Alexis Vega": "Alexis Vega",
+    "José Raúl Rangel": "Raúl Rangel",
+    # USA
+    "Christian Pulisic": "Christian Pulisic",
+    "Gio Reyna": "Gio Reyna",
+    "Weston McKennie": "Weston McKennie",
+    "Tyler Adams": "Tyler Adams",
+    "Sergino Dest": "Sergiño Dest",
+    "Matt Turner": "Matt Turner",
+    # Canada
+    "Jonathan Christian David": "Jonathan David",
+    "Alphonso Davies": "Alphonso Davies",
+    "Cyle Larin": "Cyle Larin",
+    "Stephen Eustaquio": "Stephen Eustáquio",
+    # Colombia
+    "James Rodriguez": "James Rodríguez",
+    "Luis Diaz": "Luis Díaz",
+    "Davinson Sanchez": "Davinson Sánchez",
+    # Uruguay
+    "Federico Valverde": "Federico Valverde",
+    "Darwin Nunez": "Darwin Núñez",
+    "Ronald Araujo": "Ronald Araújo",
+    "Sergio Rochet": "Sergio Rochet",
+    # Ecuador
+    "Moisés Caicedo": "Moisés Caicedo",
+    "Enner Valencia": "Enner Valencia",
+    "Pervis Estupiñán": "Pervis Estupiñán",
+    # Senegal
+    "Sadio Mane": "Sadio Mané",
+    "Edouard Mendy": "Édouard Mendy",
+    "Kalidou Koulibaly": "Kalidou Koulibaly",
+    # Morocco
+    "Achraf Hakimi": "Achraf Hakimi",
+    "Hakim Ziyech": "Hakim Ziyech",
+    "Sofyan Amrabat": "Sofyan Amrabat",
+    "Noussair Mazraoui": "Noussair Mazraoui",
+    "Yassine Bounou": "Yassine Bounou",
+    "Romain Saiss": "Romain Saïss",
+    # Japan
+    "Kaoru Mitoma": "Kaoru Mitoma",
+    "Takefusa Kubo": "Takefusa Kubo",
+    "Wataru Endo": "Wataru Endō",
+    "Takehiro Tomiyasu": "Takehiro Tomiyasu",
+    # South Korea
+    "Son Heung-min": "Son Heung-min",
+    "Kim Min-jae": "Kim Min-jae",
+    "Lee Kang-in": "Lee Kang-in",
+    "Hwang Hee-chan": "Hwang Hee-chan",
+    # Australia
+    "Mathew Ryan": "Mathew Ryan",
+    "Aaron Mooy": "Aaron Mooy",
+    # Ghana
+    "Mohammed Kudus": "Mohammed Kudus",
+    "Thomas Partey": "Thomas Partey",
+    "Mohammed Salisu": "Mohammed Salisu",
+    "André Ayew": "André Ayew",
+    "Jordan Ayew": "Jordan Ayew",
+    # Nigeria
+    "Victor Osimhen": "Victor Osimhen",
+    "Ademola Lookman": "Ademola Lookman",
+    "Wilfred Ndidi": "Wilfred Ndidi",
+    # Ivory Coast
+    "Franck Kessié": "Franck Kessié",
+    "Sébastien Haller": "Sébastien Haller",
+    "Nicolas Pépé": "Nicolas Pépé",
+    # Serbia
+    "Aleksandar Mitrovic": "Aleksandar Mitrović",
+    "Dusan Vlahovic": "Dušan Vlahović",
+    "Sergej Milinkovic-Savic": "Sergej Milinković-Savić",
+    # Denmark
+    "Christian Eriksen": "Christian Eriksen",
+    "Pierre-Emile Hojbjerg": "Pierre-Emile Højbjerg",
+    "Mikkel Damsgaard": "Mikkel Damsgaard",
+    "Joachim Andersen": "Joachim Andersen",
+    # Sweden
+    "Alexander Isak": "Alexander Isak",
+    "Dejan Kulusevski": "Dejan Kulusevski",
+    # Switzerland
+    "Granit Xhaka": "Granit Xhaka",
+    "Manuel Akanji": "Manuel Akanji",
+    "Xherdan Shaqiri": "Xherdan Shaqiri",
+    "Remo Freuler": "Remo Freuler",
+    # Poland
+    "Robert Lewandowski": "Robert Lewandowski",
+    "Wojciech Szczesny": "Wojciech Szczęsny",
+    "Piotr Zielinski": "Piotr Zieliński",
+    # Austria
+    "David Alaba": "David Alaba",
+    "Marcel Sabitzer": "Marcel Sabitzer",
+    "Marko Arnautovic": "Marko Arnautović",
+    # Ukraine
+    "Oleksandr Zinchenko": "Oleksandr Zinchenko",
+    "Mykola Zhaborynskyi": "Mykola Zhaborynskyi",
+    "Artem Dovbyk": "Artem Dovbyk",
+    "Andriy Lunin": "Andriy Lunin",
+    "Heorhiy Sudakov": "Heorhiy Sudakov",
+    # Tunisia
+    "Aïssa Laïdouni": "Aïssa Laïdouni",
+    "Wahbi Khazri": "Wahbi Khazri",
+    "Hannibal Mejbri": "Hannibal Mejbri",
+    # Cameroun
+    "André Onana": "André Onana",
+    "Vincent Aboubakar": "Vincent Aboubakar",
+    "Bryan Mbeumo": "Bryan Mbeumo",
+    # Saudi Arabia
+    "Salem Al-Dawsari": "Salem Al-Dawsari",
+    # New Zealand
+    "Chris Wood": "Chris Wood",
+}
+
+
+def _famous_name(full_name: str) -> str:
+    """Return the common/famous name for a player, falling back to the
+    original name if no override exists."""
+    if not isinstance(full_name, str):
+        return full_name
+    return _FAMOUS_NAME_OVERRIDES.get(full_name, full_name)
+
 
 def _load_raw() -> pd.DataFrame:
     """Load player_stats merged with team + squad context."""
@@ -60,8 +271,14 @@ def get_real_wc26_players() -> pd.DataFrame:
         "assists": "wc26_assists",
     })
 
+    # Apply famous-name aliases to player_name itself so every downstream
+    # dataframe (top_scorers, top_assists, gk_leaders, nation_contrib, etc.)
+    # inherits the short name without further work.
+    df["player_name"] = df["player_name"].apply(_famous_name)
+
     # Display aliases (added here so all derived dataframes inherit them)
     df["spotlight_name"] = df["player_name"]
+    df["display_name"] = df["player_name"]
     df["nation_code"] = df["fifa_code"]
     df["wc26_minutes"] = df["minutes_played"]
 
