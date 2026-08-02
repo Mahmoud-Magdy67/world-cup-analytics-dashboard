@@ -348,11 +348,13 @@ fig_radar.update_layout(
     polar=dict(radialaxis=dict(visible=True, gridcolor=FWC26_SILVER)),
     paper_bgcolor=FWC26_WHITE,
     font=dict(color=FWC26_TEXT, family="Noto Sans"),
-    title=dict(text="Top 8 Contributor Profiles (Real WC26 stats, per-90 normalised)",
-               font=dict(family="Bebas Neue", size=20, color=FWC26_RED)),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-    height=520,
-    margin=dict(t=70, b=40)
+    title=dict(text="<b>Top 8 Contributor Profiles</b> · Real WC26 stats · Per-90 normalised",
+               font=dict(family="Bebas Neue", size=18, color=FWC26_RED),
+               x=0.5, xanchor="center", y=0.97),
+    legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5,
+                font=dict(size=11)),
+    height=620,
+    margin=dict(t=60, b=120, l=80, r=80)
 )
 st.plotly_chart(fig_radar, width="stretch")
 st.caption("Real per-90 figures derived from minutes_played in WC26 matches only.")
