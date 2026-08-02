@@ -86,13 +86,6 @@ with col4:
 with col5:
     st.metric("Active Nations", f"{int(s['active_nations'])}")
 
-st.caption(
-    "Source: open Kaggle dataset mominullptr/fifa-world-cup-2026-dataset (CC0 public domain). "
-    "Stats verified against sofascore.com. All 1,248 WC26 squad players — no club-season data, "
-    "no synthetic prediction-system entries. "
-    f"Player-attributed goals sum to {int(s['wc26_goals'])}; the {308 - int(s['wc26_goals'])} own goals "
-    "bring the tournament-wide match total to 308."
-)
 st.divider()
 
 # Tournament hero banner
@@ -445,8 +438,7 @@ st.divider()
 # ============================================================================
 info_card(
     "WC 2026 Player Analytics",
-    "All player numbers above are **real World Cup 2026 tournament stats**, derived from the open "
-    "Kaggle dataset `mominullptr/fifa-world-cup-2026-dataset` (CC0 public domain, verified against "
-    "sofascore.com). 1,248 players across 48 nations are covered. Club season statistics are excluded "
-    "to avoid mixing 2024–25 historical data with the actual tournament."
+    "All player numbers above are **real World Cup 2026 tournament stats**. "
+    "1,248 players across 48 nations are covered. Club season statistics are excluded "
+    "to avoid mixing historical league data with the actual tournament."
 )
