@@ -402,9 +402,10 @@ st.dataframe(
     width="stretch"
 )
 info_card("Tournament Scope",
-    "Includes only **World Cup 2026** match statistics. All 1,248 players across 48 nations "
-    "are in the underlying table — no club-season data, no synthetic prediction-system entries. "
-    "Players who did not play a single WC26 minute appear with 0 goals/assists and MP=0.")
+    "All numbers reflect **tournament-only** statistics — goals, assists, minutes and matches "
+    "from the actual World Cup 2026 group and knockout fixtures. Use the nation filter above to "
+    "drill into any single country's full squad."
+)
 st.divider()
 
 # ============================================================================
