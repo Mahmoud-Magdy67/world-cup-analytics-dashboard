@@ -143,36 +143,66 @@ with k5:
 st.divider()
 
 # ============================================================================
-# MATCH SCHEDULE TIMELINE
+# TOURNAMENT MATCH DENSITY — matches & goals per day
 # ============================================================================
-st.subheader("📅 Match Schedule Timeline")
-timeline_df = filtered.sort_values('date')
-fig_timeline = px.scatter(
-    timeline_df,
-    x='date',
-    y='stage_name',
-    color='stage_name',
-    hover_data=['match_id', 'fixture', 'score_str', 'stadium_name', 'city'],
-    category_orders={'stage_name': STAGE_ORDER},
-    color_discrete_sequence=['#FF004D', '#7B00FF', '#00F0FF', '#00FF00', '#FF4D00', '#8B0000', '#FFA500'],
-    title="Match Schedule by Date and Stage",
-)
-fig_timeline.update_layout(
+st.subheader("📊 Tournament Match Density — 39 Days, 104 Matches")
+st.caption("Each bar = one matchday. Bar height = matches played; line = goals scored. "
+           "Spikes reveal the high-pressure group-stage block and the knockout concentration.")
+
+density_df = filtered.copy()
+density_df['date'] = pd.to_datetime(density_df['date'])
+density_df['total_goals'] = density_df['home_score'].fillna(0) + density_df['away_score'].fillna(0)
+daily = density_df.groupby(density_df['date'].dt.date).agg(
+    matches=('match_id', 'count'),
+    goals=('total_goals', 'sum'),
+    avg_goals=('total_goals', 'mean'),
+).reset_index().rename(columns={'date': 'match_date'})
+daily['match_date'] = pd.to_datetime(daily['match_date'])
+
+fig_density = go.Figure()
+# Bar: matches per day
+fig_density.add_trace(go.Bar(
+    x=daily['match_date'], y=daily['matches'],
+    name='Matches', marker_color='#C8102E',
+    hovertemplate='<b>%{x|%b %d}</b><br>Matches: %{y}<extra></extra>',
+))
+# Line: goals per day
+fig_density.add_trace(go.Scatter(
+    x=daily['match_date'], y=daily['goals'],
+    name='Goals', mode='lines+markers',
+    line=dict(color='#F4C542', width=3),
+    marker=dict(size=8),
+    yaxis='y2',
+    hovertemplate='<b>%{x|%b %d}</b><br>Goals: %{y}<extra></extra>',
+))
+fig_density.update_layout(
     paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
     font=dict(color='#000000', family='Noto Sans'),
-    title=dict(font=dict(family='Bebas Neue', size=18)),
-    xaxis_title="Match Date", yaxis_title="Stage",
-    height=400, showlegend=False,
+    title=dict(text="Daily Match & Goal Volume Across the Tournament",
+               font=dict(family='Bebas Neue', size=18, color='#C8102E')),
+    xaxis_title="Match Date",
+    yaxis=dict(title="Matches Played", side='left', showgrid=False),
+    yaxis2=dict(title="Goals Scored", overlaying='y', side='right',
+                showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+    height=380, margin=dict(t=70, b=40),
 )
-st.plotly_chart(fig_timeline, width='stretch')
+st.plotly_chart(fig_density, width='stretch')
 
-info_card("Schedule Insight",
-    f"The tournament spanned {timeline_df['date'].min().strftime('%b %d, %Y')} "
-    f"to {timeline_df['date'].max().strftime('%b %d, %Y')} "
-    f"across {matches_df['country'].nunique()} host nations "
-    f"({', '.join(sorted(matches_df['country'].unique()))}). "
-    f"Group stage matches concentrated in the first two weeks, "
-    f"followed by knockout rounds from Round of 32 through the Final."
+# Peak / quietest days
+peak_match_day = daily.loc[daily['matches'].idxmax()]
+peak_goal_day = daily.loc[daily['goals'].idxmax()]
+quiet_day = daily.loc[daily['matches'].idxmin()]
+
+info_card(
+    "Schedule Insight",
+    f"**{int(daily['matches'].sum())} matches across {len(daily)} days** — the tournament ran "
+    f"from {daily['match_date'].min().strftime('%b %d')} to {daily['match_date'].max().strftime('%b %d, %Y')}. "
+    f"The busiest matchday was **{peak_match_day['match_date'].strftime('%A, %b %d')}** with "
+    f"**{int(peak_match_day['matches'])} matches** and **{int(peak_goal_day['goals'])} goals** scored "
+    f"(the goal-spike day). Knockout rounds taper the schedule down to single fixtures — "
+    f"**{int((daily['matches'] == 1).sum())} days** hosted just one decisive match, "
+    f"the climax of the competition."
 )
 st.divider()
 
