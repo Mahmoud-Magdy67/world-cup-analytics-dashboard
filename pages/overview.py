@@ -112,64 +112,158 @@ st.write("")
 # ============================================================================
 # MATCH OUTCOME DISTRIBUTION (real results)
 # ============================================================================
-st.subheader("⚽ Match Outcome Distribution")
+st.subheader("📊 Goals Per Stage — Where the Action Was")
+st.caption("Average goals per match broke down sharply between the group format and the knockout pressure cooker.")
 
-if not real_outcomes.empty and total_matches > 0:
-    main = real_outcomes[real_outcomes['stage_name'] != 'Total'].copy()
-    total_row = real_outcomes[real_outcomes['stage_name'] == 'Total'].iloc[0] if (real_outcomes['stage_name'] == 'Total').any() else None
-    overall = {
-        'Home Wins': int(total_row['home_wins']) if total_row is not None else int(main['home_wins'].sum()),
-        'Away Wins': int(total_row['away_wins']) if total_row is not None else int(main['away_wins'].sum()),
-        'Draws (regulation)': int(total_row['draws']) if total_row is not None else int(main['draws'].sum()),
-    }
-    outcome_df = pd.DataFrame({
-        'Outcome': list(overall.keys()),
-        'Matches': list(overall.values()),
+_stage_order = ['Group Stage', 'Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third-place match', 'Final']
+stage_goals = real_matches.groupby('stage_name').apply(
+    lambda x: pd.Series({
+        'matches': len(x),
+        'goals': int(x['home_score'].sum() + x['away_score'].sum()),
     })
-    outcome_df['Share %'] = (outcome_df['Matches'] / total_matches * 100).round(1)
+).reset_index()
+stage_goals['avg_goals'] = (stage_goals['goals'] / stage_goals['matches']).round(2)
+stage_goals['stage_order'] = stage_goals['stage_name'].map({n: i for i, n in enumerate(_stage_order)})
+stage_goals = stage_goals.sort_values('stage_order').drop(columns=['stage_order'])
 
-    fig_out = px.bar(
-        outcome_df, x='Outcome', y='Matches',
-        text=[f"{m} ({p}%)" for m, p in zip(outcome_df['Matches'], outcome_df['Share %'])],
-        color='Outcome',
-        color_discrete_map={'Home Wins': '#00F0FF', 'Draws (regulation)': '#7B00FF', 'Away Wins': '#FF004D'},
-        title=f"Result Distribution Across {total_matches} Matches (Real WC26 Results)",
+col_sg1, col_sg2 = st.columns([3, 2])
+with col_sg1:
+    fig_gp = px.bar(
+        stage_goals, x='stage_name', y='avg_goals',
+        text=[f"{a:.2f}" for a in stage_goals['avg_goals']],
+        color='avg_goals',
+        color_continuous_scale=['#C8102E', '#F4C542', '#00FF00'],
+        labels={'stage_name': 'Tournament Stage', 'avg_goals': 'Avg Goals / Match'},
+        title="Average Goals Per Match by Stage",
     )
-    fig_out.update_layout(
+    fig_gp.update_layout(
         paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
         font=dict(color='#000000', family='Bebas Neue'),
         showlegend=False, margin=dict(t=40, l=10, r=10, b=10),
+        coloraxis_showscale=False,
     )
-    st.plotly_chart(fig_out, width='stretch')
-
-    info_card(
-        "AI Insight",
-        f"Across {total_matches} matches, home-side wins accounted for {overall['Home Wins']} "
-        f"({overall['Home Wins']/total_matches*100:.0f}%) of outcomes — host-continent advantage in play. "
-        f"Away wins ({overall['Away Wins']}, {overall['Away Wins']/total_matches*100:.0f}%) "
-        f"vs draws ({overall['Draws (regulation)']}, "
-        f"{overall['Draws (regulation)']/total_matches*100:.0f}%), with the edge going to decisive "
-        f"results in knockout rounds where extra-time / penalty shootouts converted most "
-        f"regulation draws into a winner."
-    )
-
-    st.markdown("#### Per-Stage Outcomes")
+    st.plotly_chart(fig_gp, width='stretch')
+with col_sg2:
     st.dataframe(
-        real_outcomes.rename(columns={
-            'stage_name': 'Stage', 'matches': 'Matches', 'home_wins': 'Home Wins',
-            'away_wins': 'Away Wins', 'draws': 'Draws', 'goals': 'Goals',
-        }),
+        stage_goals.rename(columns={'stage_name': 'Stage', 'matches': 'Matches', 'goals': 'Goals', 'avg_goals': 'Avg/Match'}),
         column_config={
-            "Matches": st.column_config.NumberColumn(format="%d"),
-            "Home Wins": st.column_config.NumberColumn(format="%d"),
-            "Away Wins": st.column_config.NumberColumn(format="%d"),
-            "Draws": st.column_config.NumberColumn(format="%d"),
-            "Goals": st.column_config.NumberColumn(format="%d"),
+            'Matches': st.column_config.NumberColumn(format="%d"),
+            'Goals': st.column_config.NumberColumn(format="%d"),
+            'Avg/Match': st.column_config.NumberColumn(format="%.2f"),
         },
         hide_index=True, width='stretch',
     )
+
+# Insight
+_group_avg = stage_goals[stage_goals['stage_name'] == 'Group Stage']['avg_goals'].iloc[0] if not stage_goals[stage_goals['stage_name'] == 'Group Stage'].empty else 0
+_ko_avg = stage_goals[stage_goals['stage_name'] != 'Group Stage']['avg_goals'].mean() if len(stage_goals[stage_goals['stage_name'] != 'Group Stage']) > 0 else 0
+info_card(
+    "AI Insight",
+    f"The group stage averaged **{_group_avg:.2f} goals/match** across 72 fixtures, "
+    f"delivering the bulk of the tournament's {total_goals} goals. "
+    f"Knockout stages averaged **{_ko_avg:.2f}** — tighter defences and higher stakes "
+    f"drove scoring down, with the Final itself a 1-0 affair settled in extra time."
+)
+
+st.divider()
+
+# ============================================================================
+# TOURNAMENT UPSETS — Elo-based analysis
+# ============================================================================
+st.subheader("⚡ Tournament Upsets — When Lower-Ranked Teams Struck")
+st.caption("An upset is defined as a team with a lower pre-tournament Elo beating a higher-Elo opponent. The Elo gap shows how big the shock was.")
+
+elo_map = dict(zip(teams_strength['team_name'], teams_strength['elo_rating']))
+upsets = []
+for _, r in real_matches.iterrows():
+    h_elo = elo_map.get(r['home_team_name'], 0)
+    a_elo = elo_map.get(r['away_team_name'], 0)
+    h_score, a_score = r['home_score'], r['away_score']
+    if pd.isna(h_score) or pd.isna(a_score):
+        continue
+    # Determine winner
+    if h_score > a_score:
+        match_winner, match_loser = r['home_team_name'], r['away_team_name']
+        w_elo, l_elo = h_elo, a_elo
+        score_str = f"{int(h_score)}-{int(a_score)}"
+    elif a_score > h_score:
+        match_winner, match_loser = r['away_team_name'], r['home_team_name']
+        w_elo, l_elo = a_elo, h_elo
+        score_str = f"{int(h_score)}-{int(a_score)}"
+    else:
+        # Draw → check PK
+        hp, ap = r.get('home_penalty_score'), r.get('away_penalty_score')
+        if pd.notna(hp) and pd.notna(ap):
+            if hp > ap:
+                match_winner, match_loser = r['home_team_name'], r['away_team_name']
+                w_elo, l_elo = h_elo, a_elo
+            else:
+                match_winner, match_loser = r['away_team_name'], r['home_team_name']
+                w_elo, l_elo = a_elo, h_elo
+            score_str = f"{int(h_score)}-{int(a_score)} (PK {int(hp)}-{int(ap)})"
+        else:
+            continue  # true draw, no upset
+    if w_elo < l_elo:
+        upsets.append({
+            'stage': r['stage_name'],
+            'winner': match_winner,
+            'loser': match_loser,
+            'winner_elo': int(w_elo),
+            'loser_elo': int(l_elo),
+            'elo_gap': int(l_elo - w_elo),
+            'score': score_str,
+        })
+
+upsets_df = pd.DataFrame(upsets).sort_values('elo_gap', ascending=False).reset_index(drop=True) if upsets else pd.DataFrame()
+
+if not upsets_df.empty:
+    col_up1, col_up2 = st.columns([3, 2])
+    with col_up1:
+        fig_upsets = px.bar(
+            upsets_df.head(12), x='elo_gap', y='winner',
+            orientation='h',
+            text=[f"beat {l} ({le})" for l, le in zip(upsets_df.head(12)['loser'], upsets_df.head(12)['loser_elo'])],
+            color='elo_gap',
+            color_continuous_scale=['#F4C542', '#FF8C00', '#C8102E'],
+            labels={'elo_gap': 'Elo Gap (favourite > underdog)', 'winner': 'Underdog Winner'},
+            title="Biggest Upsets by Elo Gap",
+        )
+        fig_upsets.update_layout(
+            yaxis=dict(autorange='reversed'),
+            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+            font=dict(color='#000000', family='Bebas Neue'),
+            showlegend=False, margin=dict(t=40, l=10, r=10, b=10),
+            coloraxis_showscale=False,
+            height=400,
+        )
+        st.plotly_chart(fig_upsets, width='stretch')
+    with col_up2:
+        st.dataframe(
+            upsets_df.head(12)[['stage', 'winner', 'loser', 'winner_elo', 'loser_elo', 'elo_gap', 'score']],
+            column_config={
+                'stage': 'Stage',
+                'winner': 'Winner',
+                'loser': 'Loser',
+                'winner_elo': st.column_config.NumberColumn("Elo", format="%d"),
+                'loser_elo': st.column_config.NumberColumn("Elo", format="%d"),
+                'elo_gap': st.column_config.NumberColumn("Gap", format="%d"),
+                'score': 'Score',
+            },
+            hide_index=True, width='stretch',
+        )
+
+    biggest = upsets_df.iloc[0]
+    info_card(
+        "AI Insight",
+        f"**{len(upsets_df)} upsets** across the tournament — "
+        f"the biggest shock: **{biggest['winner']}** (Elo {biggest['winner_elo']}) beating "
+        f"**{biggest['loser']}** (Elo {biggest['loser_elo']}, a {biggest['elo_gap']}-point gap) "
+        f"in the {biggest['stage']} ({biggest['score']}). "
+        f"Knockout football rewards tactical discipline over rating pedigree — "
+        f"{sum(upsets_df['stage'] != 'Group Stage')}/12 upsets came in the knockout rounds."
+    )
 else:
-    st.info("No match result data available.")
+    st.info("No upset data available.")
 
 st.divider()
 
