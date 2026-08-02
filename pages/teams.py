@@ -510,15 +510,25 @@ if 'group_letter' in filtered.columns and 'elo_rating' in filtered.columns:
     hardest = group_analysis.iloc[0]
     easiest = group_analysis.iloc[-1]
 
+    # Get the team names in each group
+    hardest_teams = filtered[filtered['group_letter'] == hardest['group_letter']]['team_name'].tolist()
+    easiest_teams = filtered[filtered['group_letter'] == easiest['group_letter']]['team_name'].tolist()
+    def fmt_teams(teams):
+        if not teams:
+            return ""
+        if len(teams) == 1:
+            return teams[0]
+        return ", ".join(teams[:-1]) + f" & {teams[-1]}"
+
     gc1, gc2 = st.columns(2)
     with gc1:
-        st.markdown(f"#### 🔴 Hardest Group: {hardest['group_letter']}")
+        st.markdown(f"#### 🔴 Hardest Group: {hardest['group_letter']} — {fmt_teams(hardest_teams)}")
         st.markdown(f"- Avg Elo: **{hardest['avg_elo']:.0f}**")
         st.markdown(f"- Elo Range: {hardest['min_elo']:.0f} – {hardest['max_elo']:.0f}")
         st.markdown(f"- Total Squad Value: €{hardest['total_value']/1e9:.2f}B")
         st.markdown(f"- Total WC26 Goals: {int(hardest['total_wc26_goals'])}")
     with gc2:
-        st.markdown(f"#### 🟢 Easiest Group: {easiest['group_letter']}")
+        st.markdown(f"#### 🟢 Easiest Group: {easiest['group_letter']} — {fmt_teams(easiest_teams)}")
         st.markdown(f"- Avg Elo: **{easiest['avg_elo']:.0f}**")
         st.markdown(f"- Elo Range: {easiest['min_elo']:.0f} – {easiest['max_elo']:.0f}")
         st.markdown(f"- Total Squad Value: €{easiest['total_value']/1e9:.2f}B")
@@ -527,8 +537,8 @@ if 'group_letter' in filtered.columns and 'elo_rating' in filtered.columns:
     elo_diff = hardest['avg_elo'] - easiest['avg_elo']
     info_card(
         "Group of Death Insight",
-        f"**Group {hardest['group_letter']}** is statistically the hardest group with an average "
-        f"Elo of {hardest['avg_elo']:.0f}. **Group {easiest['group_letter']}** is the easiest "
+        f"**Group {hardest['group_letter']}** ({fmt_teams(hardest_teams)}) is statistically the hardest group with an average "
+        f"Elo of {hardest['avg_elo']:.0f}. **Group {easiest['group_letter']}** ({fmt_teams(easiest_teams)}) is the easiest "
         f"with an average Elo of {easiest['avg_elo']:.0f}. The {elo_diff:.0f}-point Elo gap means "
         f"teams in Group {hardest['group_letter']} faced a significantly steeper path to the "
         f"knockout rounds. Teams emerging from Groups of Death either galvanize into deep "
