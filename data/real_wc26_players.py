@@ -36,14 +36,17 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     # England
     "Harry Edward Kane": "Harry Kane",
     "Jude Victor William Bellingham": "Jude Bellingham",
+    "Florian Richard Wirtz": "Florian Wirtz",
     "Kai Lukas Havertz": "Kai Havertz",
     "Cody Mathès Gakpo": "Cody Gakpo",
     "Marcus Rashford": "Marcus Rashford",
     "Phil Foden": "Phil Foden",
-    "Bukayo Saka": "Bukayo Saka",
+    "Bukayo Ayoyinka Saka": "Bukayo Saka",
     "Declan Rice": "Declan Rice",
     "John Stones": "John Stones",
     "Jordan Pickford": "Jordan Pickford",
+    "Anthony Michael Gordon": "Anthony Gordon",
+    "Martín Odegaard": "Martin Ødegaard",
     # Netherlands
     "Virgil van Dijk": "Virgil van Dijk",
     "Frenkie de Jong": "Frenkie de Jong",
@@ -61,11 +64,13 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Unai Simon": "Unai Simón",
     # Brazil
     "Vinicius Junior": "Vinícius Júnior",
+    "José Vinicius": "Vinícius Júnior",
     "Endrick": "Endrick",
     "Rodrygo": "Rodrygo",
     "Casemiro": "Casemiro",
     "Marquinhos": "Marquinhos",
     "Alisson Becker": "Alisson Becker",
+    "GUIMARAESBruno Bruno": "Bruno Guimarães",
     # Portugal
     "Cristiano Ronaldo": "Cristiano Ronaldo",
     "Bruno Miguel Borges Fernandes": "Bruno Fernandes",
@@ -102,6 +107,9 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Mateo Kovacic": "Mateo Kovačić",
     "Marcelo Brozovic": "Marcelo Brozović",
     "Ivan Perisic": "Ivan Perišić",
+    # Egypt
+    "Hamed Mahrous Mohamed Salah": "Mohamed Salah",
+    "Mohamed Zeki Amdouni": "Zeki Amdouni",
     # Mexico
     "Julián Andrés Quinones": "Julián Quiñones",
     "Santiago Tomás Gimenez": "Santiago Giménez",
@@ -129,7 +137,7 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Stephen Eustaquio": "Stephen Eustáquio",
     # Colombia
     "James Rodriguez": "James Rodríguez",
-    "Luis Diaz": "Luis Díaz",
+    "Luis Fernando Diaz": "Luis Díaz",
     "Davinson Sanchez": "Davinson Sánchez",
     # Uruguay
     "Federico Valverde": "Federico Valverde",
@@ -144,6 +152,7 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Sadio Mane": "Sadio Mané",
     "Edouard Mendy": "Édouard Mendy",
     "Kalidou Koulibaly": "Kalidou Koulibaly",
+    "Ismaila Sarr": "Ismaila Sarr",
     # Morocco
     "Achraf Hakimi": "Achraf Hakimi",
     "Hakim Ziyech": "Hakim Ziyech",
@@ -221,6 +230,38 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Salem Al-Dawsari": "Salem Al-Dawsari",
     # New Zealand
     "Chris Wood": "Chris Wood",
+    # Other long-name → famous-name fixes
+    "Anthony David Junior Elanga": "Anthony Elanga",
+    "Adrien Thibault Marie Rabiot": "Adrien Rabiot",
+    "Warren Marie Jean-Pierre Zaire-Emery": "Warren Zaïre-Emery",
+    "Bradley Jean-Manuel Essolisa Barcola": "Bradley Barcola",
+    "Denzel Justus Morris Dumfries": "Denzel Dumfries",
+    "Nicolas Hernan Gonzalo Otamendi": "Nicolás Otamendi",
+    "Rodrigo Javier De Paul": "Rodrigo De Paul",
+    "Quinten Ryan Crispito Timber": "Quinten Timber",
+    "Micky Van De Ven": "Micky van de Ven",
+    "Lucas Francois Bernard Hernandez": "Lucas Hernández",
+    "Théo Bernard François Hernandez": "Théo Hernández",
+    "William Alain André Gabriel Saliba": "William Saliba",
+    "Wout François Maria Weghorst": "Wout Weghorst",
+    "Pascal Alexander GROß GROß Gross": "Pascal Groß",
+    "Paul Jan-Paul Van Hecke": "Jan-Paul van Hecke",
+    "Ivan Benjamin Elijah Toney": "Ivan Toney",
+    "Brian Ebenezer Adjei Brobbey": "Brian Brobbey",
+    "Sander Gard Bolin Berge": "Sander Berge",
+    "Marten Elco De Roon": "Marten de Roon",
+    "Maxim Peter De Cuyper": "Maxim De Cuyper",
+    "Miguel Nuno Da Costa": "Miguel da Costa",
+    "Giorgian Daniel De Arrascaeta": "Giorgian de Arrascaeta",
+    "Diego Nicolás De La Cruz": "Diego de la Cruz",
+    "Brahim Diaz": "Brahim Díaz",
+    "Alejandro Sebastian Romero Gamarra": "Alejandro Gómez",
+    "Tijjani Martinus Jan Reijnders": "Tijjani Reijnders",
+    "Kristoffer Vassbakk Köpp Ajer": "Kristoffer Ajer",
+    "Jørgen Strand Strand Larsen": "Jørgen Strand Larsen",
+    "Carl Anders Theodor Starfelt": "Carl Starfelt",
+    "Angus Fraser James Gunn": "Angus Gunn",
+    "Charles Marc De Ketelaere": "Charles De Ketelaere",
 }
 
 
@@ -229,7 +270,22 @@ def _famous_name(full_name: str) -> str:
     original name if no override exists."""
     if not isinstance(full_name, str):
         return full_name
-    return _FAMOUS_NAME_OVERRIDES.get(full_name, full_name)
+    # Direct override
+    if full_name in _FAMOUS_NAME_OVERRIDES:
+        return _FAMOUS_NAME_OVERRIDES[full_name]
+    # Fuzzy: if the name has 4+ words and contains a known famous name
+    # pattern, try matching on first+last
+    parts = full_name.split()
+    if len(parts) >= 4:
+        # Try first+last
+        candidate = f"{parts[0]} {parts[-1]}"
+        if candidate in _FAMOUS_NAME_OVERRIDES:
+            return _FAMOUS_NAME_OVERRIDES[candidate]
+        # Try just first two
+        candidate2 = f"{parts[0]} {parts[1]}"
+        if candidate2 in _FAMOUS_NAME_OVERRIDES:
+            return _FAMOUS_NAME_OVERRIDES[candidate2]
+    return full_name
 
 
 def _load_raw() -> pd.DataFrame:
