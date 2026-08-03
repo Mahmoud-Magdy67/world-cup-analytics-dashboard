@@ -222,8 +222,9 @@ if not nation_contrib.empty:
     col_n1, col_n2 = st.columns(2)
 
     with col_n1:
+        top_goals = nation_contrib.sort_values("tgoals", ascending=False).head(15)
         fig_ng = px.bar(
-            nation_contrib.sort_values("tgoals", ascending=True).head(15),
+            top_goals.sort_values("tgoals", ascending=True),  # reverse for horizontal display
             x="tgoals", y="team_name",
             orientation="h",
             color="tgoals",
@@ -245,8 +246,9 @@ if not nation_contrib.empty:
         st.plotly_chart(fig_ng, width="stretch")
 
     with col_n2:
+        top_assists = nation_contrib.sort_values("tassists", ascending=False).head(15)
         fig_na = px.bar(
-            nation_contrib.sort_values("tassists", ascending=True).head(15),
+            top_assists.sort_values("tassists", ascending=True),  # reverse for horizontal display
             x="tassists", y="team_name",
             orientation="h",
             color="tassists",
