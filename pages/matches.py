@@ -160,10 +160,13 @@ daily = density_df.groupby(density_df['date'].dt.date).agg(
 daily['match_date'] = pd.to_datetime(daily['match_date'])
 
 fig_density = go.Figure()
-# Bar: matches per day
+# Bar: matches per day (solid red — visible at all heights, no white at low values)
 fig_density.add_trace(go.Bar(
     x=daily['match_date'], y=daily['matches'],
     name='Matches', marker_color='#C8102E',
+    marker_line_color='#7a0a1a', marker_line_width=1,
+    text=daily['matches'], textposition='outside',
+    textfont=dict(size=10, color='#000000'),
     hovertemplate='<b>%{x|%b %d}</b><br>Matches: %{y}<extra></extra>',
 ))
 # Line: goals per day
@@ -171,7 +174,7 @@ fig_density.add_trace(go.Scatter(
     x=daily['match_date'], y=daily['goals'],
     name='Goals', mode='lines+markers',
     line=dict(color='#F4C542', width=3),
-    marker=dict(size=8),
+    marker=dict(size=8, color='#F4C542', line=dict(color='#7a0a1a', width=1)),
     yaxis='y2',
     hovertemplate='<b>%{x|%b %d}</b><br>Goals: %{y}<extra></extra>',
 ))
@@ -181,11 +184,11 @@ fig_density.update_layout(
     title=dict(text="Daily Match & Goal Volume Across the Tournament",
                font=dict(family='Bebas Neue', size=18, color='#C8102E')),
     xaxis_title="Match Date",
-    yaxis=dict(title="Matches Played", side='left', showgrid=False),
+    yaxis=dict(title="Matches Played", side='left', showgrid=False, dtick=1, rangemode='tozero'),
     yaxis2=dict(title="Goals Scored", overlaying='y', side='right',
                 showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-    height=380, margin=dict(t=70, b=40),
+    height=400, margin=dict(t=70, b=40),
 )
 st.plotly_chart(fig_density, width='stretch')
 
