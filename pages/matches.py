@@ -305,47 +305,6 @@ if 'latitude' in venue_stats.columns and venue_stats['latitude'].notna().any():
 st.divider()
 
 # ============================================================================
-# GROUP STAGE COMPOSITION
-# ============================================================================
-st.subheader("👥 Group Stage Composition")
-group_matches = filtered[filtered['stage_name'] == 'Group Stage'].copy()
-# Group letter is derivable from group_letter in teams.csv, but in matches_df
-# we don't have it directly — join from team info via home/away team names.
-# Simpler: show matches per stage as a pie (group vs knockout).
-if not group_matches.empty:
-    stage_counts = filtered['stage_name'].value_counts().reset_index()
-    stage_counts.columns = ['stage_name', 'matches']
-    stage_counts['order'] = stage_counts['stage_name'].apply(
-        lambda s: STAGE_ORDER.index(s) if s in STAGE_ORDER else 99)
-    stage_counts = stage_counts.sort_values('order').drop(columns=['order'])
-
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        fig_stage = px.pie(
-            stage_counts,
-            values='matches', names='stage_name',
-            title="Match Distribution by Stage",
-            color_discrete_sequence=['#FF004D', '#7B00FF', '#00F0FF', '#00FF00', '#FF4D00',
-                                     '#FFA500', '#8B0000', '#006400'],
-        )
-        fig_stage.update_layout(
-            paper_bgcolor='#ffffff',
-            font=dict(color='#000000', family='Noto Sans'),
-            title=dict(font=dict(family='Bebas Neue', size=16)),
-            height=400,
-        )
-        st.plotly_chart(fig_stage, width='stretch')
-
-    with col2:
-        st.markdown("#### 📊 Stage Statistics")
-        st.metric("Total Stages", f"{len(stage_counts)}")
-        st.metric("Matches", f"{int(stage_counts['matches'].sum())}")
-        st.metric("Group Matches", f"{int(stage_counts[stage_counts['stage_name']=='Group Stage']['matches'].iloc[0]) if (stage_counts['stage_name']=='Group Stage').any() else 0}")
-        st.metric("Knockout Matches", f"{int(stage_counts[stage_counts['stage_name']!='Group Stage']['matches'].sum())}")
-
-    st.divider()
-
-# ============================================================================
 # KNOCKOUT DRAMA — how each KO round was decided
 # ============================================================================
 st.subheader("🥊 Knockout Drama — How Each Round Was Settled")
