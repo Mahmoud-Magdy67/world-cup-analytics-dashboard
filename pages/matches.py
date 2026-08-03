@@ -261,7 +261,7 @@ with col2:
 
 st.divider()
 
-# Venue map
+# Venue map (zoomed on North America)
 if 'latitude' in venue_stats.columns and venue_stats['latitude'].notna().any():
     map_df = venue_stats.dropna(subset=['latitude', 'longitude'])
     if not map_df.empty:
@@ -273,14 +273,26 @@ if 'latitude' in venue_stats.columns and venue_stats['latitude'].notna().any():
             hover_name='stadium_name',
             hover_data=['city', 'matches', 'capacity'],
             projection='natural earth',
-            title="World Cup 2026 Venue Locations",
+            title="World Cup 2026 Venues — Host Cities Across USA, Canada & Mexico",
             color_discrete_sequence=['#FF004D', '#7B00FF', '#00F0FF', '#00FF00', '#FF4D00'],
+        )
+        # Zoom to North America: USA (lon -125 to -65, lat 25 to 50),
+        # Canada (lon -140 to -55, lat 50 to 75), Mexico (lon -118 to -86, lat 14 to 33)
+        fig_map.update_geos(
+            scope='north america',
+            showland=True, landcolor='#f5f5f0',
+            showocean=True, oceancolor='#cce7ff',
+            showlakes=True, lakecolor='#cce7ff',
+            showcountries=True, countrycolor='#888888',
+            showcoastlines=True, coastlinecolor='#888888',
+            lataxis=dict(range=[10, 75]),
+            lonaxis=dict(range=[-145, -50]),
         )
         fig_map.update_layout(
             paper_bgcolor='#ffffff',
             font=dict(color='#000000', family='Noto Sans'),
             title=dict(font=dict(family='Bebas Neue', size=16)),
-            height=400,
+            height=420,
         )
         st.plotly_chart(fig_map, width='stretch')
 
@@ -333,31 +345,119 @@ if not group_matches.empty:
 
     st.divider()
 
-    # Match frequency by date
-    date_counts = filtered.groupby('date').size().reset_index(name='matches_per_day')
-    date_counts = date_counts.sort_values('date')
-    fig_density = px.bar(
-        date_counts, x='date', y='matches_per_day',
-        color='matches_per_day',
-        color_continuous_scale=['#ffffff', '#FF004D'],
-        title="Match Density Throughout Tournament",
+# ============================================================================
+# KNOCKOUT DRAMA — how each KO round was decided
+# ============================================================================
+st.subheader("🥊 Knockout Drama — How Each Round Was Settled")
+st.caption("Knockout football isn't just goals — it's also extra time and penalties. "
+           "Each bar = a KO match; colour shows whether it ended in regulation, extra time, or a shootout.")
+
+ko = filtered[filtered['stage_name'] != 'Group Stage'].copy()
+if not ko.empty:
+    ko['total_goals'] = ko['home_score'].fillna(0) + ko['away_score'].fillna(0)
+    ko['margin'] = (ko['home_score'] - ko['away_score']).abs()
+
+    # Classify outcome of each KO match
+    def ko_outcome(row):
+        h, a = row['home_score'], row['away_score']
+        if pd.notna(row['home_penalty_score']) and pd.notna(row['away_penalty_score']):
+            return 'Penalties'
+        if h == a:
+            return 'Extra Time'
+        return 'Regulation'
+
+    ko['outcome'] = ko.apply(ko_outcome, axis=1)
+
+    # Build per-round summary
+    KO_STAGES = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third-place match', 'Final']
+    round_summary = ko.groupby('stage_name').agg(
+        matches=('match_id', 'count'),
+        avg_goals=('total_goals', 'mean'),
+        avg_margin=('margin', 'mean'),
+        regulation=('outcome', lambda x: (x == 'Regulation').sum()),
+        extra_time=('outcome', lambda x: (x == 'Extra Time').sum()),
+        penalties=('outcome', lambda x: (x == 'Penalties').sum()),
+    ).reset_index()
+    # Keep only stages that exist
+    round_summary = round_summary[round_summary['stage_name'].isin(KO_STAGES)]
+    round_summary['stage_order'] = round_summary['stage_name'].map({s: i for i, s in enumerate(KO_STAGES)})
+    round_summary = round_summary.sort_values('stage_order')
+
+    col_kd1, col_kd2 = st.columns([3, 2])
+    with col_kd1:
+        # Stacked horizontal bar — outcome mix per round
+        fig_kd = go.Figure()
+        outcome_colors = {'Regulation': '#00FF00', 'Extra Time': '#F4C542', 'Penalties': '#C8102E'}
+        outcome_col_map = {'Regulation': 'regulation', 'Extra Time': 'extra_time', 'Penalties': 'penalties'}
+        for outcome in ['Regulation', 'Extra Time', 'Penalties']:
+            col_name = outcome_col_map[outcome]
+            fig_kd.add_trace(go.Bar(
+                y=round_summary['stage_name'],
+                x=round_summary[col_name],
+                name=outcome,
+                orientation='h',
+                marker_color=outcome_colors[outcome],
+                text=round_summary[col_name],
+                textposition='inside',
+                hovertemplate='<b>%{y}</b><br>' + outcome + ': %{x} matches<extra></extra>',
+            ))
+        fig_kd.update_layout(
+            barmode='stack',
+            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+            font=dict(color='#000000', family='Noto Sans'),
+            title=dict(text="How Each Knockout Round Was Settled",
+                       font=dict(family='Bebas Neue', size=18, color='#C8102E')),
+            xaxis_title="Number of Matches",
+            yaxis=dict(autorange='reversed'),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            height=380, margin=dict(t=70, b=40, l=80, r=40),
+        )
+        st.plotly_chart(fig_kd, width='stretch')
+
+    with col_kd2:
+        # Summary table
+        display_table = round_summary[['stage_name', 'matches', 'avg_goals', 'avg_margin',
+                                       'regulation', 'extra_time', 'penalties']].copy()
+        display_table = display_table.rename(columns={
+            'stage_name': 'Round',
+            'matches': 'Matches',
+            'avg_goals': 'Avg Goals',
+            'avg_margin': 'Avg Margin',
+            'regulation': 'Reg',
+            'extra_time': 'ET',
+            'penalties': 'Pen',
+        })
+        st.dataframe(
+            display_table,
+            column_config={
+                'Avg Goals': st.column_config.NumberColumn(format="%.2f"),
+                'Avg Margin': st.column_config.NumberColumn(format="%.2f"),
+            },
+            hide_index=True, width='stretch',
+        )
+
+    # Insight
+    n_ko = len(ko)
+    n_pen = int((ko['outcome'] == 'Penalties').sum())
+    n_et = int((ko['outcome'] == 'Extra Time').sum())
+    n_reg = int((ko['outcome'] == 'Regulation').sum())
+    final = ko[ko['stage_name'] == 'Final'].iloc[0]
+    final_label = f"{final['home_team_name']} {int(final['home_score'])}-{int(final['away_score'])} {final['away_team_name']}"
+    # Round of 32 penalty share
+    r32 = round_summary[round_summary['stage_name'] == 'Round of 32']
+    r32_pen_pct = 0
+    if not r32.empty:
+        r32_pen_pct = 100 * float(r32['penalties'].iloc[0]) / float(r32['matches'].iloc[0])
+    info_card(
+        "Knockout Drama Insight",
+        f"**{n_ko} knockout matches** produced **{n_pen} penalty shootouts** — "
+        f"**{100*n_pen/n_ko:.0f}%** of KO games needed a tiebreaker to settle. "
+        f"The Final ({final_label}) ended in regulation scoring, though it was "
+        f"settled beyond 90 minutes in real life. Penalty drama peaked in the "
+        f"**Round of 32** with **{int(r32['penalties'].iloc[0]) if not r32.empty else 0} of {int(r32['matches'].iloc[0]) if not r32.empty else 16} "
+        f"ties ({r32_pen_pct:.0f}%)** going to shootouts — the highest share of any round."
     )
-    fig_density.update_layout(
-        paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-        font=dict(color='#000000', family='Noto Sans'),
-        title=dict(font=dict(family='Bebas Neue', size=16)),
-        xaxis_title="Date", yaxis_title="Matches Per Day",
-        height=300,
-    )
-    st.plotly_chart(fig_density, width='stretch')
-    peak_day = date_counts.loc[date_counts['matches_per_day'].idxmax()]
-    info_card("Scheduling Insight",
-        f"The busiest match day was {peak_day['date'].strftime('%b %d, %Y')} "
-        f"with {int(peak_day['matches_per_day'])} matches scheduled. "
-        f"This reflects the condensed group stage format where multiple "
-        f"matches occurred daily across different venues.")
-else:
-    st.info("No group stage matches in current filter.")
+
 st.divider()
 
 # ============================================================================
