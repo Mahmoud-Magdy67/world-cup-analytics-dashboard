@@ -428,7 +428,8 @@ st.divider()
 st.subheader("⚽ Goal Breakdown — How Goals Were Scored")
 
 # Use player_stats: penalty_goals and own_goals columns
-ps = pd.read_csv(DATA_DIR / "player_stats.csv")
+from data.real_wc26 import get_real_wc26_player_stats
+ps = get_real_wc26_player_stats()
 total_g = int(ps['goals'].sum())
 total_pk = int(ps['penalty_goals'].sum())
 total_og = int(ps['own_goals'].sum())
