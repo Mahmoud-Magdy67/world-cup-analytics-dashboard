@@ -319,12 +319,12 @@ if not ko.empty:
     ko['total_goals'] = ko['home_score'].fillna(0) + ko['away_score'].fillna(0)
     ko['margin'] = (ko['home_score'] - ko['away_score']).abs()
 
-    # Classify outcome of each KO match
+    # Classify outcome using the dataset's result_type column (AET/Penalties/Regular)
     def ko_outcome(row):
-        h, a = row['home_score'], row['away_score']
-        if pd.notna(row['home_penalty_score']) and pd.notna(row['away_penalty_score']):
+        rt = str(row.get('result_type', '')).strip()
+        if rt == 'Penalties':
             return 'Penalties'
-        if h == a:
+        if rt == 'AET':
             return 'Extra Time'
         return 'Regulation'
 
@@ -405,6 +405,7 @@ if not ko.empty:
     n_reg = int((ko['outcome'] == 'Regulation').sum())
     final = ko[ko['stage_name'] == 'Final'].iloc[0]
     final_label = f"{final['home_team_name']} {int(final['home_score'])}-{int(final['away_score'])} {final['away_team_name']}"
+    final_outcome = final['outcome']
     # Round of 32 penalty share
     r32 = round_summary[round_summary['stage_name'] == 'Round of 32']
     r32_pen_pct = 0
@@ -412,10 +413,10 @@ if not ko.empty:
         r32_pen_pct = 100 * float(r32['penalties'].iloc[0]) / float(r32['matches'].iloc[0])
     info_card(
         "Knockout Drama Insight",
-        f"**{n_ko} knockout matches** produced **{n_pen} penalty shootouts** — "
-        f"**{100*n_pen/n_ko:.0f}%** of KO games needed a tiebreaker to settle. "
-        f"The Final ({final_label}) ended in regulation scoring, though it was "
-        f"settled beyond 90 minutes in real life. Penalty drama peaked in the "
+        f"**{n_ko} knockout matches** produced **{n_pen} penalty shootouts** and "
+        f"**{n_et} extra-time deciders** — **{100*(n_pen+n_et)/n_ko:.0f}%** of KO games "
+        f"needed more than 90 minutes to settle. The Final ({final_label}) ended in "
+        f"**{final_outcome.lower()}**. Penalty drama peaked in the "
         f"**Round of 32** with **{int(r32['penalties'].iloc[0]) if not r32.empty else 0} of {int(r32['matches'].iloc[0]) if not r32.empty else 16} "
         f"ties ({r32_pen_pct:.0f}%)** going to shootouts — the highest share of any round."
     )
