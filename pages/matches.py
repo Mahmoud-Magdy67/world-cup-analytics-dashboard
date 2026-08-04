@@ -515,20 +515,29 @@ rest_stats = rest_stats[rest_stats['total_matches'] > 1].dropna(subset=['avg_res
 if not rest_stats.empty:
     col1, col2 = st.columns([2, 1])
     with col1:
-        fig_rest = px.scatter(
-            rest_stats, x='avg_rest', y='min_rest',
-            size='total_matches', color='min_rest',
-            hover_data=['team', 'max_rest'],
-            color_continuous_scale=['#FF0000', '#FFFF00', '#00FF00'],
-            title="Team Rest Distribution: Avg vs Minimum Rest Days",
-        )
+        # Sort by min_rest (lowest = toughest at top) then by avg_rest
+        plot_df = rest_stats.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]).copy()
+        fig_rest = go.Figure()
+        # Color points by min_rest category
+        for min_r in sorted(plot_df['min_rest'].unique()):
+            subset = plot_df[plot_df['min_rest'] == min_r]
+            color = '#C8102E' if min_r <= 3 else ('#F4C542' if min_r <= 4 else '#00a86b')
+            fig_rest.add_trace(go.Scatter(
+                x=subset['avg_rest'], y=subset['team'],
+                mode='markers',
+                marker=dict(size=12, color=color, line=dict(width=1, color='#333333')),
+                text=[f"min={r['min_rest']:.0f}d, avg={r['avg_rest']:.1f}d, {r['total_matches']:.0f} matches" for _, r in subset.iterrows()],
+                hovertemplate='<b>%{y}</b><br>%{text}<extra></extra>',
+                showlegend=False,
+            ))
         fig_rest.update_layout(
             paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-            font=dict(color='#000000', family='Noto Sans'),
-            title=dict(font=dict(family='Bebas Neue', size=16)),
+            font=dict(color='#2B1E16', family='Noto Sans'),
+            title=dict(text="Team Rest Distribution: Avg vs Minimum Rest Days",
+                       font=dict(family='Bebas Neue', size=16, color='#2B1E16')),
             xaxis_title="Average Rest Days Between Matches",
-            yaxis_title="Minimum Rest Days Between Matches",
-            height=400,
+            yaxis_title="",
+            height=550, margin=dict(t=50, b=40, l=120, r=20),
         )
         st.plotly_chart(apply_dark_text_theme(fig_rest), width='stretch')
 
@@ -593,65 +602,74 @@ st.divider()
 # ============================================================================
 # xG & POSSESSION ANALYSIS (new — only possible with real Kaggle data)
 # ============================================================================
-st.subheader("🎯 xG & Possession Analysis")
+st.subheader("🎯 xG Performance — Who Created & Conceded Chances")
+
 xg_df = filtered.dropna(subset=['home_xg', 'away_xg']).copy()
 if not xg_df.empty:
+    # Build team-level xG aggregation: for + against per team
+    home_xg = xg_df.groupby('home_team_name', as_index=False).agg(
+        xg_for=('home_xg', 'mean'),
+        goals_for=('home_score', 'mean'),
+    ).rename(columns={'home_team_name': 'team'})
+    away_xg = xg_df.groupby('away_team_name', as_index=False).agg(
+        xg_for=('away_xg', 'mean'),
+        goals_for=('away_score', 'mean'),
+    ).rename(columns={'away_team_name': 'team'})
+    # xG against: swap sides
+    home_xga = xg_df.groupby('home_team_name', as_index=False).agg(
+        xg_against=('away_xg', 'mean'),
+    ).rename(columns={'home_team_name': 'team'})
+    away_xga = xg_df.groupby('away_team_name', as_index=False).agg(
+        xg_against=('home_xg', 'mean'),
+    ).rename(columns={'away_team_name': 'team'})
+
+    team_xg = home_xg.merge(away_xg, on='team', how='left').fillna(0)
+    team_xga = home_xga.merge(away_xga, on='team', how='left').fillna(0)
+    team_xg_stats = team_xg.merge(team_xga, on='team', how='left')
+    team_xg_stats['xg_for'] = (team_xg_stats['xg_for_x'] + team_xg_stats['xg_for_y']) / 2
+    team_xg_stats['goals_for'] = (team_xg_stats['g_for_x'] + team_xg_stats['g_for_y']) / 2  # not used
+    team_xg_stats['xg_against'] = (team_xg_stats['xg_against_x'] + team_xg_stats['xg_against_y']) / 2
+    team_xg_stats['xg_diff'] = team_xg_stats['xg_for'] - team_xg_stats['xg_against']
+    team_xg_stats = team_xg_stats[['team', 'xg_for', 'xg_against', 'xg_diff']].sort_values('xg_for', ascending=False)
+
     col1, col2 = st.columns(2)
     with col1:
-        fig_xg = px.scatter(
-            xg_df, x='home_xg', y='away_xg',
-            color='stage_name',
-            hover_data=['match_id', 'fixture', 'score_str'],
-            category_orders={'stage_name': STAGE_ORDER},
-            color_discrete_sequence=['#FF004D', '#7B00FF', '#00F0FF', '#00FF00', '#FF4D00', '#8B0000', '#FFA500'],
-            title="Expected Goals (Home xG vs Away xG)",
+        fig_xg = px.bar(
+            team_xg_stats.head(15).sort_values('xg_for', ascending=True),
+            x='xg_for', y='team', orientation='h',
+            color_discrete_sequence=['#00a86b'],
+            title="Top 15 Teams: Avg Expected Goals (xG) For",
         )
-        # Add y=x reference line
-        fig_xg.add_trace(go.Scatter(
-            x=[0, xg_df[['home_xg', 'away_xg']].max().max()],
-            y=[0, xg_df[['home_xg', 'away_xg']].max().max()],
-            mode='lines', line=dict(dash='dash', color='gray'),
-            showlegend=False, hoverinfo='skip',
-        ))
         fig_xg.update_layout(
             paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-            font=dict(color='#000000', family='Noto Sans'),
+            font=dict(color='#2B1E16', family='Noto Sans'),
             title=dict(font=dict(family='Bebas Neue', size=16)),
-            xaxis_title="Home xG", yaxis_title="Away xG", height=400,
+            xaxis_title='Avg xG Created per Match', yaxis_title='',
+            height=450,
         )
         st.plotly_chart(apply_dark_text_theme(fig_xg), width='stretch')
 
     with col2:
-        poss_df = filtered.dropna(subset=['home_possession', 'away_possession']).copy()
-        if not poss_df.empty:
-            fig_poss = px.histogram(
-                poss_df, x='home_possession',
-                nbins=20, color_discrete_sequence=['#FF004D'],
-                title="Home Team Possession Distribution",
-            )
-            fig_poss.update_layout(
-                paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-                font=dict(color='#000000', family='Noto Sans'),
-                title=dict(font=dict(family='Bebas Neue', size=16)),
-                xaxis_title="Home Possession %", yaxis_title="Number of Matches",
-                height=400,
-            )
-            st.plotly_chart(apply_dark_text_theme(fig_poss), width='stretch')
-
-        # xG vs actual goals scored
-        avg_home_xg = xg_df['home_xg'].mean()
-        avg_away_xg = xg_df['away_xg'].mean()
-        avg_home_goals = xg_df['home_score'].mean()
-        avg_away_goals = xg_df['away_score'].mean()
-        st.metric("Avg Home xG → Goals", f"{avg_home_xg:.2f} → {avg_home_goals:.2f}")
-        st.metric("Avg Away xG → Goals", f"{avg_away_xg:.2f} → {avg_away_goals:.2f}")
+        xga_df = team_xg_stats.sort_values('xg_against', ascending=True)
+        fig_xga = px.bar(
+            xga_df.head(15).sort_values('xg_against', ascending=True),
+            x='xg_against', y='team', orientation='h',
+            color_discrete_sequence=['#C8102E'],
+            title='Top 15 Teams: Best Defensive Expected Goals',
+        )
+        fig_xga.update_layout(
+            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+            font=dict(color='#2B1E16', family='Noto Sans'),
+            title=dict(font=dict(family='Bebas Neue', size=16)),
+            xaxis_title='Avg Attacks Faced per Match (lower is better)', yaxis_title='',
+            height=450,
+        )
+        st.plotly_chart(apply_dark_text_theme(fig_xga), width='stretch')
 
     info_card("xG Insight",
-        f"Across {len(xg_df)} matches with xG data, the average home xG was "
-        f"{avg_home_xg:.2f} (actual {avg_home_goals:.2f} goals/match) vs "
-        f"{avg_away_xg:.2f} away xG (actual {avg_away_goals:.2f}). "
-        f"Home teams outperformed their xG by {avg_home_goals - avg_home_xg:+.2f} per match, "
-        f"while away teams {'matched' if abs(avg_away_goals - avg_away_xg) < 0.1 else ('outperformed' if avg_away_goals > avg_away_xg else 'underperformed')} theirs.")
+        f"High xG teams create many chances but fewer goals than their xG, showing that "
+        f"finishing matters (e.g. average xG is {team_xg_stats['xg_for'].mean():.2f}/match). "
+        f"Low xGA means solid defending — the best teams sit bottom-left of both charts.")
 st.divider()
 
 # ============================================================================
@@ -679,18 +697,13 @@ if not cap_data.empty:
     with col2:
         st.metric("Average Capacity", f"{int(cap_data.mean()):,} seats")
         st.metric("Median Capacity", f"{int(cap_data.median()):,} seats")
-        st.metric("Std Dev", f"{int(cap_data.std()):,} seats")
+        st.metric("Spread (Range)", f"{int(cap_data.min()):,} to {int(cap_data.max()):,} seats")
 
     with col3:
-        # Each match is one event at a venue; total seats × matches = potential attendance
         total_seats_per_match = cap_data.sum()
-        total_potential = total_seats_per_match * len(filtered)
-        est_attendance = int(total_potential * 0.85)  # 85% avg attendance assumption
-        st.metric("Total Seats Across All Venues", f"{int(total_seats_per_match):,}")
-        st.metric("Est. Total Attendance (85%)", f"{est_attendance:,}")
-        st.metric("Venues >80k Seats", f"{(cap_data > 80000).sum()}")
-
-    st.divider()
+        st.metric("Seats Across All Venues", f"{int(total_seats_per_match):,}")
+        st.metric("Biggest Venue (any stadium)", f"{int(cap_data.max()):,} seats")
+        st.metric("Venues Bigger Than Wembley (>80k)", f"{(cap_data > 80000).sum()}")
 
     if 'stadium_name' in filtered.columns and 'city' in filtered.columns:
         largest = filtered[['stadium_name', 'city', 'country', 'venue_capacity']].drop_duplicates()\
@@ -731,29 +744,62 @@ st.divider()
 # ============================================================================
 # DATA QUALITY & SOURCES
 # ============================================================================
-st.subheader("📊 Data Sources & Quality")
-completed = (filtered['status'] == 'Completed').sum() if 'status' in filtered.columns else len(filtered)
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Matches Loaded", f"{len(filtered)}")
-    st.metric("Completed Matches", f"{completed}")
-    if len(filtered) == 104:
-        st.success("✅ Complete tournament schedule loaded (104 matches)")
-    elif len(filtered) < 104:
-        st.info(f"ℹ️ Showing {len(filtered)} of 104 matches (filtered)")
-with col2:
-    missing = []
-    for col in ('home_score', 'away_score', 'stadium_name', 'stage_name'):
-        if col not in filtered.columns or filtered[col].isna().all():
-            missing.append(col)
-    if missing:
-        st.warning(f"⚠️ Missing columns: {', '.join(missing)}")
-    else:
-        st.success("✅ Core match data complete (scores, venues, stages)")
-    if 'date' in filtered.columns and filtered['date'].notna().any():
-        st.info(f"📅 Tournament: {filtered['date'].min().strftime('%b %d')} "
-                f"to {filtered['date'].max().strftime('%b %d, %Y')}")
+st.subheader("⚽ xG Conversion — Who Finishes Their Chances")
 
-st.caption(
-    "Final: Spain 1-0 Argentina (AET), 2026-07-19, MetLife Stadium"
-)
+xg_df2 = filtered.dropna(subset=['home_xg', 'home_score', 'away_xg', 'away_score']).copy()
+if not xg_df2.empty:
+    # Build home + away: xG vs actual goals for each team
+    home_xg = xg_df2.groupby('home_team_name', as_index=False).agg(
+        xg=('home_xg', 'mean'), goals=('home_score', 'mean')
+    ).rename(columns={'home_team_name': 'team'})
+    away_xg = xg_df2.groupby('away_team_name', as_index=False).agg(
+        xg=('away_xg', 'mean'), goals=('away_score', 'mean')
+    ).rename(columns={'away_team_name': 'team'})
+    all_xg = pd.concat([home_xg, away_xg])
+    team_conv = all_xg.groupby('team', as_index=False)[['xg', 'goals']].mean()
+    team_conv['conversion'] = team_conv['goals'] - team_conv['xg']
+    team_conv['label'] = team_conv.apply(
+        lambda r: f"{r['goals']:.1f} goals vs {r['xg']:.1f} xG ({r['conversion']:+.1f})", axis=1
+    )
+    # Show best finishers (positive conversion)
+    best = team_conv.sort_values('conversion', ascending=False).head(10)
+    worst = team_conv.sort_values('conversion', ascending=True).head(10)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_conv_best = px.bar(
+            best.sort_values('conversion', ascending=True),
+            x='conversion', y='team', orientation='h',
+            text='label', color_discrete_sequence=['#00a86b'],
+            title='Best Finishers (Goals Above xG)',
+        )
+        fig_conv_best.update_layout(
+            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+            font=dict(color='#2B1E16', family='Noto Sans'),
+            title=dict(font=dict(family='Bebas Neue', size=16)),
+            xaxis_title='Goals - xG per Match', yaxis_title='', height=450,
+        )
+        fig_conv_best.update_traces(textposition='outside', textfont=dict(size=10, color='#2B1E16'))
+        st.plotly_chart(apply_dark_text_theme(fig_conv_best), width='stretch')
+
+    with col2:
+        fig_conv_worst = px.bar(
+            worst.sort_values('conversion', ascending=False),
+            x='conversion', y='team', orientation='h',
+            text='label', color_discrete_sequence=['#C8102E'],
+            title='Biggest Underperformers (Goals Below xG)',
+        )
+        fig_conv_worst.update_layout(
+            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+            font=dict(color='#2B1E16', family='Noto Sans'),
+            title=dict(font=dict(family='Bebas Neue', size=16)),
+            xaxis_title='Conversion Difference per Match', yaxis_title='', height=450,
+        )
+        fig_conv_worst.update_traces(textposition='outside', textfont=dict(size=10, color='#2B1E16'))
+        st.plotly_chart(apply_dark_text_theme(fig_conv_worst), width='stretch')
+
+    info_card("Conversion Insight",
+        f"Teams above the zero line score more goals than their xG suggests — "
+        f"they are clinical finishers. Teams below zero create chances but struggle to convert. "
+        f"The best finisher is {best.iloc[0]['team']} (+{best.iloc[0]['conversion']:+.1f}/match), "
+        f"worst is {worst.iloc[0]['team']} ({worst.iloc[0]['conversion']:+.1f}/match).")
