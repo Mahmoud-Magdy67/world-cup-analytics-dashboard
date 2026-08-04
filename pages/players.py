@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from data.real_wc26_players import (
     get_real_wc26_players, get_real_wc26_player_summary,
     get_real_wc26_top_scorers, get_real_wc26_top_assists,
@@ -142,7 +142,7 @@ with c1:
         showlegend=False, height=420, margin=dict(l=120, r=20, t=30, b=40)
     )
     fig_g.update_traces(textposition="outside", marker_line_color=FWC26_WHITE, marker_line_width=1)
-    st.plotly_chart(fig_g, width="stretch")
+    st.plotly_chart(apply_dark_text_theme(fig_g), width='stretch')
 
 with c2:
     st.markdown("<h3 style='color: #C8102E; font-family: Bebas Neue; margin-top:15px;'>🅰️ Top Assist Providers</h3>", unsafe_allow_html=True)
@@ -164,7 +164,7 @@ with c2:
             showlegend=False, height=420, margin=dict(l=120, r=20, t=30, b=40)
         )
         fig_a.update_traces(textposition="outside", marker_line_color=FWC26_WHITE, marker_line_width=1)
-        st.plotly_chart(fig_a, width="stretch")
+        st.plotly_chart(apply_dark_text_theme(fig_a), width='stretch')
     else:
         st.info("No assist data yet for tournament leaders.")
 
@@ -194,7 +194,7 @@ fig_top.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1.04, xanchor="center", x=0.5),
     height=420, margin=dict(t=80, b=80)
 )
-st.plotly_chart(fig_top, width="stretch")
+st.plotly_chart(apply_dark_text_theme(fig_top), width='stretch')
 st.divider()
 
 # ============================================================================
@@ -243,7 +243,7 @@ if not nation_contrib.empty:
             height=380, margin=dict(l=80, r=20, t=30, b=40)
         )
         fig_ng.update_traces(textposition="outside")
-        st.plotly_chart(fig_ng, width="stretch")
+        st.plotly_chart(apply_dark_text_theme(fig_ng), width='stretch')
 
     with col_n2:
         top_assists = nation_contrib.sort_values("tassists", ascending=False).head(15)
@@ -267,7 +267,7 @@ if not nation_contrib.empty:
             height=380, margin=dict(l=80, r=20, t=30, b=40)
         )
         fig_na.update_traces(textposition="outside")
-        st.plotly_chart(fig_na, width="stretch")
+        st.plotly_chart(apply_dark_text_theme(fig_na), width='stretch')
 
     st.divider()
 
@@ -300,7 +300,7 @@ if not position_breakdown.empty:
         legend=dict(orientation="h", yanchor="bottom", y=1.04, xanchor="center", x=0.5),
         height=360, margin=dict(t=80, b=40)
     )
-    st.plotly_chart(fig_pos, width="stretch")
+    st.plotly_chart(apply_dark_text_theme(fig_pos), width='stretch')
     st.divider()
 
 # ============================================================================
@@ -358,7 +358,7 @@ fig_radar.update_layout(
     height=620,
     margin=dict(t=60, b=120, l=80, r=80)
 )
-st.plotly_chart(fig_radar, width="stretch")
+st.plotly_chart(apply_dark_text_theme(fig_radar), width='stretch')
 st.caption("Real per-90 figures derived from minutes_played in WC26 matches only.")
 st.divider()
 

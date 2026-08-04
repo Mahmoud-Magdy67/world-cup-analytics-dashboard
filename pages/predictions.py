@@ -13,7 +13,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from data.real_wc26 import (
     get_real_wc26_team_strength, get_real_wc26_matches, STAGE_ORDER,
 )
@@ -163,7 +163,7 @@ fig_elo.update_layout(
     font=dict(color='#000000', family='Bebas Neue'),
     margin=dict(t=40, l=10, r=10, b=10),
 )
-st.plotly_chart(fig_elo, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_elo), width='stretch')
 
 # ============================================================================
 # CHART 2: Expected vs Actual delta — over/underperformers
@@ -194,7 +194,7 @@ fig_delta.update_layout(
     font=dict(color='#000000', family='Bebas Neue'),
     margin=dict(t=40, l=10, r=10, b=10),
 )
-st.plotly_chart(fig_delta, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_delta), width='stretch')
 
 info_card(
     "AI Insight",
@@ -234,7 +234,7 @@ fig_scatter.update_layout(
     margin=dict(t=40, l=10, r=10, b=10),
     height=520,
 )
-st.plotly_chart(fig_scatter, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_scatter), width='stretch')
 
 st.divider()
 

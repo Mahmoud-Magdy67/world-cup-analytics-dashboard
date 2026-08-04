@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from data.real_wc26 import (
     get_real_wc26_team_strength, get_real_wc26_match_team_stats,
     get_real_wc26_teams, get_real_wc26_matches, STAGE_ORDER,
@@ -208,7 +208,7 @@ if sel_team != "None":
 
     r1, r2 = st.columns([2, 1])
     with r1:
-        st.plotly_chart(fig_radar, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_radar), width='stretch')
     with r2:
         st.markdown(f"### {sel_team} Quick Stats")
         st.markdown(f"**Group:** {team_data.get('group_letter', 'N/A')}")
@@ -276,7 +276,7 @@ fig_scatter.update_layout(
     paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
     font=dict(color='#000000', family='Noto Sans'),
 )
-st.plotly_chart(fig_scatter, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_scatter), width='stretch')
 
 elite_teams = scatter_df[(scatter_df['attack_strength'] > avg_atk) & (scatter_df['defense_strength'] > avg_def)]
 elite_count = len(elite_teams)
@@ -375,7 +375,7 @@ fig_value.update_layout(
     font=dict(color='#000000', family='Noto Sans'),
     title=dict(font=dict(family='Bebas Neue', size=18)),
 )
-st.plotly_chart(fig_value, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_value), width='stretch')
 
 trend_df = filtered.dropna(subset=['elo_rating', 'total_market_value_eur']).copy()
 if len(trend_df) > 2:
@@ -505,7 +505,7 @@ if 'group_letter' in filtered.columns and 'elo_rating' in filtered.columns:
         font=dict(color='#000000', family='Noto Sans'),
         title=dict(font=dict(family='Bebas Neue', size=18)),
     )
-    st.plotly_chart(fig_group, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_group), width='stretch')
 
     hardest = group_analysis.iloc[0]
     easiest = group_analysis.iloc[-1]
@@ -580,7 +580,7 @@ avg_strength = balance_df['overall_strength'].mean()
 avg_balance = balance_df['balance_score'].mean()
 fig_balance.add_vline(x=avg_strength, line_dash="dash", line_color="#000000", opacity=0.4)
 fig_balance.add_hline(y=avg_balance, line_dash="dash", line_color="#000000", opacity=0.4)
-st.plotly_chart(fig_balance, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_balance), width='stretch')
 
 most_balanced = balance_df.nsmallest(3, 'balance_score')
 most_imbalanced = balance_df.nlargest(3, 'balance_score')

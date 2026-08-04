@@ -222,6 +222,39 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
         st.markdown(f"<p style='color: #000000; font-size: 1.1rem; margin-top: -1rem;'>{description}</p>", unsafe_allow_html=True)
     st.divider()
 
+def apply_dark_text_theme(fig):
+    """Force all chart text to dark color on white background.
+
+    In Streamlit dark mode, Plotly's theme overrides font colors to light gray,
+    making axis labels/titles invisible on white chart backgrounds. This helper
+    forces paper_bgcolor, plot_bgcolor, and all font slots to dark-on-white so
+    charts stay readable in both light and dark Streamlit themes.
+
+    Call this AFTER all traces and layout are set, right before st.plotly_chart.
+    """
+    DARK = '#2B1E16'
+    WHITE = '#ffffff'
+    fig.update_layout(
+        paper_bgcolor=WHITE,
+        plot_bgcolor=WHITE,
+        font=dict(color=DARK, family='Noto Sans'),
+    )
+    # Force axis tick fonts and titles
+    for axis in ['xaxis', 'yaxis', 'xaxis2', 'yaxis2']:
+        fig.update_layout(**{
+            f'{axis}_tickfont': dict(color=DARK, family='Noto Sans'),
+            f'{axis}_title_font': dict(color=DARK, family='Noto Sans'),
+            f'{axis}_gridcolor': '#e0e0e0',
+        })
+    # Force legend font
+    fig.update_layout(legend=dict(font=dict(color=DARK, family='Noto Sans')))
+    # Force title font color
+    fig.update_layout(title=dict(font=dict(color=DARK, family='Bebas Neue')))
+    # Force colorbar text
+    fig.update_layout(coloraxis_colorbar=dict(tickfont=dict(color=DARK)))
+    return fig
+
+
 def kpi_cards(items: List[Tuple[str, Any, Optional[str]]], cols: Optional[int] = None):
     """
     Create professional KPI cards with icons and deltas.

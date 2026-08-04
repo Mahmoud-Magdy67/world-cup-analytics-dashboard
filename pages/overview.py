@@ -142,7 +142,7 @@ with col_sg1:
         showlegend=False, margin=dict(t=40, l=10, r=10, b=10),
         coloraxis_showscale=False,
     )
-    st.plotly_chart(fig_gp, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_gp), width='stretch')
 with col_sg2:
     st.dataframe(
         stage_goals.rename(columns={'stage_name': 'Stage', 'matches': 'Matches', 'goals': 'Goals', 'avg_goals': 'Avg/Match'}),
@@ -236,7 +236,7 @@ if not upsets_df.empty:
             coloraxis_showscale=False,
             height=400,
         )
-        st.plotly_chart(fig_upsets, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_upsets), width='stretch')
     with col_up2:
         st.dataframe(
             upsets_df.head(12)[['stage', 'winner', 'loser', 'winner_elo', 'loser_elo', 'elo_gap', 'score']],
@@ -299,7 +299,7 @@ if not spain_row.empty:
         text="🏆 Champion", showarrow=True, arrowhead=2, arrowcolor='#00FF00',
         font=dict(color='#009922', size=14), yshift=8,
     )
-st.plotly_chart(fig_rank, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_rank), width='stretch')
 
 disp_cols = ['elo_rank', 'team_name', 'confederation', 'elo_rating',
              'fifa_ranking_pre_tournament', 'squad_market_value_eur', 'wc26_goals']
@@ -354,7 +354,7 @@ if not real_team_stats.empty:
         font=dict(color='#000000', family='Bebas Neue'),
         margin=dict(t=40, l=10, r=10, b=10),
     )
-    st.plotly_chart(fig_goals, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_goals), width='stretch')
 
     st.markdown("#### Per-Team Goal Metrics")
     st.dataframe(
@@ -464,7 +464,7 @@ if 'confederation' in teams_strength.columns:
         font=dict(color='#000000', family='Bebas Neue'),
         margin=dict(t=40, l=10, r=10, b=10),
     )
-    st.plotly_chart(fig_conf, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_conf), width='stretch')
 
     st.dataframe(
         confed_stats.rename(columns={

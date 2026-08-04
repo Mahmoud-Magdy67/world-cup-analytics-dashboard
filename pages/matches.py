@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from data.real_wc26 import (
     get_real_wc26_matches_enriched, get_real_wc26_knockout_bracket,
     get_real_wc26_venues, get_real_wc26_referees, STAGE_ORDER,
@@ -190,7 +190,7 @@ fig_density.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
     height=400, margin=dict(t=70, b=40),
 )
-st.plotly_chart(fig_density, width='stretch')
+st.plotly_chart(apply_dark_text_theme(fig_density), width='stretch')
 
 # Peak / quietest days
 peak_match_day = daily.loc[daily['matches'].idxmax()]
@@ -242,7 +242,7 @@ with col1:
         xaxis_title="Venue", yaxis_title="Number of Matches",
         height=400, showlegend=True,
     )
-    st.plotly_chart(fig_venue, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_venue), width='stretch')
 
 with col2:
     st.markdown("#### 📊 Venue Statistics")
@@ -297,7 +297,7 @@ if 'latitude' in venue_stats.columns and venue_stats['latitude'].notna().any():
             title=dict(font=dict(family='Bebas Neue', size=16)),
             height=420,
         )
-        st.plotly_chart(fig_map, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_map), width='stretch')
 
         info_card("Venue Insight",
             f"The 2026 World Cup was hosted across {venue_stats['host_country'].nunique()} countries "
@@ -374,7 +374,7 @@ if not ko.empty:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             height=380, margin=dict(t=70, b=40, l=80, r=40),
         )
-        st.plotly_chart(fig_kd, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_kd), width='stretch')
 
     with col_kd2:
         # Summary table
@@ -467,7 +467,7 @@ with col_g1:
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         height=220, margin=dict(t=70, b=40, l=40, r=20),
     )
-    st.plotly_chart(fig_bg, width='stretch')
+    st.plotly_chart(apply_dark_text_theme(fig_bg), width='stretch')
 
 with col_g2:
     st.metric("Open Play", total_op, f"{100*total_op/total_g:.0f}%")
@@ -529,7 +529,7 @@ if not rest_stats.empty:
             yaxis_title="Minimum Rest Days Between Matches",
             height=400,
         )
-        st.plotly_chart(fig_rest, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_rest), width='stretch')
 
     with col2:
         st.markdown("#### 📊 Rest Statistics")
@@ -618,7 +618,7 @@ if not xg_df.empty:
             title=dict(font=dict(family='Bebas Neue', size=16)),
             xaxis_title="Home xG", yaxis_title="Away xG", height=400,
         )
-        st.plotly_chart(fig_xg, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_xg), width='stretch')
 
     with col2:
         poss_df = filtered.dropna(subset=['home_possession', 'away_possession']).copy()
@@ -635,7 +635,7 @@ if not xg_df.empty:
                 xaxis_title="Home Possession %", yaxis_title="Number of Matches",
                 height=400,
             )
-            st.plotly_chart(fig_poss, width='stretch')
+            st.plotly_chart(apply_dark_text_theme(fig_poss), width='stretch')
 
         # xG vs actual goals scored
         avg_home_xg = xg_df['home_xg'].mean()
@@ -673,7 +673,7 @@ if not cap_data.empty:
             xaxis_title="Stadium Capacity", yaxis_title="Number of Venues",
             bargap=0.1,
         )
-        st.plotly_chart(fig_cap, width='stretch')
+        st.plotly_chart(apply_dark_text_theme(fig_cap), width='stretch')
 
     with col2:
         st.metric("Average Capacity", f"{int(cap_data.mean()):,} seats")
