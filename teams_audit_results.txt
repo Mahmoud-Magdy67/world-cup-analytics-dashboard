@@ -1,0 +1,72 @@
+================================================================================
+TEAMS PAGE AUDIT - ALL NUMBERS CROSS-CHECKED
+================================================================================
+
+4. ATTACK vs DEFENSE MATRIX
+   Avg Attack: 77.5, Avg Defense: 77.7
+   Elite Balance teams: 16
+     Netherlands     Atk=94.3 Def=81.1
+     Germany         Atk=94.3 Def=81.1
+     France          Atk=91.4 Def=81.1
+     England         Atk=91.4 Def=78.7
+     Argentina       Atk=89.9 Def=83.4
+     Belgium         Atk=89.4 Def=81.8
+     USA             Atk=87.8 Def=77.8
+     Mexico          Atk=85.5 Def=87.1
+     Brazil          Atk=85.5 Def=85.3
+     Japan           Atk=85.5 Def=81.1
+     Canada          Atk=83.1 Def=81.5
+     Spain           Atk=82.5 Def=91.6
+     Morocco         Atk=81.6 Def=83.4
+     Switzerland     Atk=81.6 Def=83.4
+     Portugal        Atk=80.8 Def=87.1
+     Egypt           Atk=80.8 Def=79.6
+
+5. ELO vs SQUAD VALUE
+   Overperformers (Elo > expected for value):
+     + Uruguay         Elo=1960 Residual=+181
+     + Colombia        Elo=1990 Residual=+159
+     + Croatia         Elo=1940 Residual=+136
+   Underperformers (Elo < expected for value):
+     - New Zealand     Elo=1510 Residual=-164
+     - Curaçao         Elo=1520 Residual=-155
+     - Haiti           Elo=1530 Residual=-153
+
+6. CONFEDERATION STRENGTH
+   CONMEBOL Teams= 6 Elo=1954 Atk=76.6 Def=84.1 Mid=81.8 Val=€0.52B Goals=42
+   UEFA     Teams=16 Elo=1896 Atk=82.6 Def=79.0 Mid=81.5 Val=€0.65B Goals=151
+   CAF      Teams=10 Elo=1733 Atk=76.3 Def=78.1 Mid=77.5 Val=€0.24B Goals=53
+   AFC      Teams= 9 Elo=1716 Atk=71.7 Def=73.3 Mid=69.4 Val=€0.13B Goals=25
+   CONCACAF Teams= 6 Elo=1698 Atk=75.7 Def=76.5 Mid=76.4 Val=€0.21B Goals=33
+   OFC      Teams= 1 Elo=1510 Atk=77.6 Def=61.6 Mid=69.8 Val=€0.04B Goals=4
+
+7. GROUP OF DEATH
+   Group H AvgElo=1858 Std=255 Range=1640-2171 Val=€1.77B Goals=22
+   Group F AvgElo=1846 Std=113 Range=1710-1980 Val=€1.52B Goals=28
+   Group L AvgElo=1840 Std=185 Range=1680-2050 Val=€2.08B Goals=28
+   Group J AvgElo=1838 Std=228 Range=1610-2150 Val=€1.60B Goals=33
+   Group I AvgElo=1836 Std=197 Range=1630-2100 Val=€2.59B Goals=44
+   Group K AvgElo=1830 Std=197 Range=1650-2010 Val=€1.85B Goals=20
+   Group C AvgElo=1800 Std=221 Range=1530-2030 Val=€1.54B Goals=23
+   Group D AvgElo=1786 Std=51 Range=1725-1850 Val=€1.06B Goals=20
+   Group E AvgElo=1778 Std=194 Range=1520-1970 Val=€1.78B Goals=19
+   Group G AvgElo=1752 Std=185 Range=1510-1950 Val=€1.01B Goals=29
+   Group A AvgElo=1742 Std=87 Range=1620-1810 Val=€0.79B Goals=16
+   Group B AvgElo=1725 Std=123 Range=1600-1860 Val=€0.83B Goals=26
+   Hardest: Group H (Avg Elo 1858)
+   Easiest: Group B (Avg Elo 1725)
+   Elo Gap: 133
+
+8. TACTICAL BALANCE INDEX
+   Most Balanced (lowest std dev):
+     Brazil          Balance=0.79 Overall=85.8
+     Egypt           Balance=0.89 Overall=79.8
+     Croatia         Balance=1.62 Overall=77.9
+   Most Imbalanced (highest std dev):
+     Paraguay        Balance=10.81 Overall=70.2
+     Senegal         Balance=9.85 Overall=81.9
+     Ghana           Balance=9.63 Overall=74.7
+
+================================================================================
+AUDIT COMPLETE
+================================================================================

@@ -6,12 +6,14 @@ in 3 host nations, with scores, xG, lineups, and in-match statistics.
 Spain defeated Argentina 1-0 (AET) in the Final on 2026-07-19 at MetLife Stadium.
 Matches the official FWC26 Light Theme.
 """
-import streamlit as st
+from pages._shared_enhanced import st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
+from pathlib import Path
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 from data.real_wc26 import (
     get_real_wc26_matches_enriched, get_real_wc26_knockout_bracket,
     get_real_wc26_venues, get_real_wc26_referees, STAGE_ORDER,
@@ -517,27 +519,26 @@ if not rest_stats.empty:
     with col1:
         # Sort by min_rest (lowest = toughest at top) then by avg_rest
         plot_df = rest_stats.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]).copy()
-        fig_rest = go.Figure()
-        # Color points by min_rest category
-        for min_r in sorted(plot_df['min_rest'].unique()):
-            subset = plot_df[plot_df['min_rest'] == min_r]
-            color = '#C8102E' if min_r <= 3 else ('#F4C542' if min_r <= 4 else '#00a86b')
-            fig_rest.add_trace(go.Scatter(
-                x=subset['avg_rest'], y=subset['team'],
-                mode='markers',
-                marker=dict(size=12, color=color, line=dict(width=1, color='#333333')),
-                text=[f"min={r['min_rest']:.0f}d, avg={r['avg_rest']:.1f}d, {r['total_matches']:.0f} matches" for _, r in subset.iterrows()],
-                hovertemplate='<b>%{y}</b><br>%{text}<extra></extra>',
-                showlegend=False,
-            ))
+        # Bar chart: each team on its own row, colored by min_rest category
+        fig_rest = px.bar(
+            plot_df.sort_values('avg_rest', ascending=False),
+            x='avg_rest', y='team', orientation='h',
+            color='min_rest',
+            color_discrete_map={
+                0: '#C8102E', 1: '#C8102E', 2: '#C8102E', 3: '#C8102E',
+                4: '#F4C542', 5: '#00a86b', 6: '#00a86b', 7: '#00a86b', 8: '#00a86b',
+                9: '#00a86b', 10: '#00a86b', 11: '#00a86b', 12: '#00a86b', 13: '#00a86b',
+            },
+            hover_data={'min_rest': True, 'avg_rest': ':.1f', 'total_matches': True},
+            title="Team Rest Distribution: Avg vs Minimum Rest Days",
+        )
         fig_rest.update_layout(
             paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
             font=dict(color='#2B1E16', family='Noto Sans'),
-            title=dict(text="Team Rest Distribution: Avg vs Minimum Rest Days",
-                       font=dict(family='Bebas Neue', size=16, color='#2B1E16')),
+            title=dict(font=dict(family='Bebas Neue', size=16, color='#2B1E16')),
             xaxis_title="Average Rest Days Between Matches",
             yaxis_title="",
-            height=550, margin=dict(t=50, b=40, l=120, r=20),
+            height=550, margin=dict(t=50, b=40, l=150, r=20),
         )
         st.plotly_chart(apply_dark_text_theme(fig_rest), width='stretch')
 

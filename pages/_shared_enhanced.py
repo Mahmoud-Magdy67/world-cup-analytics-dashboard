@@ -2,7 +2,78 @@
 Shared components and utilities for World Cup Analytics Dashboard.
 Professional UI components, custom CSS, and reusable visualizations.
 """
-import streamlit as st
+try:
+    import streamlit as st
+except ImportError:
+    # Fallback dummy streamlit for environments where Streamlit is unavailable (e.g., audit scripts)
+    class DummySt:
+        def __init__(self):
+            # Provide a dummy column_config submodule with NumberColumn
+            class DummyColumnConfig:
+                            def __getattr__(self, name):
+                                # Return a dummy placeholder for any column config attribute
+                                def dummy(*args, **kwargs):
+                                    return None
+                                return dummy
+            self.column_config = DummyColumnConfig()
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc, tb):
+            return False
+        def __getattr__(self, name):
+            # Return a dummy function for any Streamlit API
+            def dummy(*args, **kwargs):
+                # Specific handling for UI input widgets to return sensible defaults
+                if name in ('selectbox', 'radio'):
+                    # args: label, options, ...
+                    if len(args) >= 2:
+                        opts = args[1]
+                        return opts[0] if opts else None
+                    return None
+                if name == 'multiselect':
+                    # Return empty list or first option list
+                    return []
+                if name == 'checkbox':
+                    return False
+                if name == 'slider' or name == 'number_input':
+                    # Return the default value if provided, else 0
+                    if 'value' in kwargs:
+                        return kwargs['value']
+                    return 0
+                if name == 'text_input' or name == 'textarea':
+                    return ''
+                if name == 'columns':
+                    # Accept either an integer count or an iterable of column ratios
+                    arg = args[0] if args else 1
+                    if isinstance(arg, (list, tuple)):
+                        count = len(arg)
+                    else:
+                        try:
+                            count = int(arg)
+                        except Exception:
+                            count = 1
+                    return [DummySt() for _ in range(count)]
+                if name == 'expander' or name == 'container':
+                    return DummySt()
+                if name == 'spinner':
+                    # Return a dummy context manager for spinner
+                    class DummySpinner:
+                        def __enter__(self):
+                            return self
+                        def __exit__(self, exc_type, exc, tb):
+                            return False
+                        def success(self, *a, **kw):
+                            return None
+                        def empty(self):
+                            return None
+                    return DummySpinner()
+                if name == 'empty' or name == 'progress' or name == 'write' or name == 'markdown' or name == 'subheader' or name == 'metric' or name == 'divider' or name == 'caption' or name == 'error' or name == 'warning' or name == 'info' or name == 'success' or name == 'dataframe':
+                    # No-op functions
+                    return None
+                # For other calls, return a DummySt to allow chaining or context use
+                return DummySt()
+            return dummy
+    st = DummySt()
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -223,35 +294,33 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
     st.divider()
 
 def apply_dark_text_theme(fig):
-    """Force all chart text to dark color on white background.
+    """Force chart text to a dark color on a white background.
 
-    In Streamlit dark mode, Plotly's theme overrides font colors to light gray,
-    making axis labels/titles invisible on white chart backgrounds. This helper
-    forces paper_bgcolor, plot_bgcolor, and all font slots to dark-on-white so
-    charts stay readable in both light and dark Streamlit themes.
-
-    Call this AFTER all traces and layout are set, right before st.plotly_chart.
+    This function makes Plotly figures readable in both Streamlit light and dark themes
+    by overriding background colors and font colors. It safely applies settings only to
+    primary axes (xaxis, yaxis) to avoid ``Invalid property`` errors.
     """
     DARK = '#2B1E16'
     WHITE = '#ffffff'
+    # Base layout overrides
     fig.update_layout(
         paper_bgcolor=WHITE,
         plot_bgcolor=WHITE,
         font=dict(color=DARK, family='Noto Sans'),
+        legend=dict(font=dict(color=DARK, family='Noto Sans')),
+        title=dict(font=dict(color=DARK, family='Bebas Neue')),
     )
-    # Force axis tick fonts and titles
-    for axis in ['xaxis', 'yaxis', 'xaxis2', 'yaxis2']:
-        fig.update_layout(**{
-            f'{axis}_tickfont': dict(color=DARK, family='Noto Sans'),
-            f'{axis}_title_font': dict(color=DARK, family='Noto Sans'),
-            f'{axis}_gridcolor': '#e0e0e0',
-        })
-    # Force legend font
-    fig.update_layout(legend=dict(font=dict(color=DARK, family='Noto Sans')))
-    # Force title font color
-    fig.update_layout(title=dict(font=dict(color=DARK, family='Bebas Neue')))
-    # Force colorbar text
-    fig.update_layout(coloraxis_colorbar=dict(tickfont=dict(color=DARK)))
+    # Update only primary axes (xaxis, yaxis)
+    for axis_name in ['xaxis', 'yaxis']:
+        if axis_name in fig.layout:
+            fig.update_layout(**{
+                f'{axis_name}_tickfont': dict(color=DARK, family='Noto Sans'),
+                f'{axis_name}_title_font': dict(color=DARK, family='Noto Sans'),
+                f'{axis_name}_gridcolor': '#e0e0e0',
+            })
+    # Color axis (for heatmaps) if present
+    if 'coloraxis' in fig.layout:
+        fig.update_layout(coloraxis_colorbar=dict(tickfont=dict(color=DARK)))
     return fig
 
 

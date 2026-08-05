@@ -8,7 +8,7 @@ There is no championship-probability model in the Kaggle data, so this page
 reframes what used to be "Model Predictions" as a transparent Elo / FIFA-rank
 based strength index with the real tournament outcome overlaid.
 """
-import streamlit as st
+from pages._shared_enhanced import st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd

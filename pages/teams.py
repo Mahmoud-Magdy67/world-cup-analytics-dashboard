@@ -6,7 +6,15 @@ ranking, manager, squad market value, and per-team in-match statistics
 (possession, shots, xG, fouls, etc.) aggregated from 104 real matches.
 Matches the official FWC26 Light Theme.
 """
-import streamlit as st
+try:
+    import streamlit as st
+except ImportError:
+    class DummySt:
+        def __getattr__(self, name):
+            def dummy(*args, **kwargs):
+                return None
+            return dummy
+    st = DummySt()
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd

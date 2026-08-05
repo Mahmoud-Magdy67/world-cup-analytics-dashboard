@@ -5,7 +5,7 @@ FIFA World Cup 2026 retrospective using the real Kaggle dataset
 2.96 avg/match. Spain defeated Argentina 1-0 (AET) in the Final on 2026-07-19
 at MetLife Stadium, East Rutherford.
 """
-import streamlit as st
+from pages._shared_enhanced import st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
