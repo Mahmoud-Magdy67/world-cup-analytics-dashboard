@@ -18,6 +18,7 @@ from data.real_wc26 import (
     get_real_wc26_matches_enriched, get_real_wc26_knockout_bracket,
     get_real_wc26_venues, get_real_wc26_referees, STAGE_ORDER,
 )
+from data.real_wc26_players import _famous_name
 
 # Apply CSS
 load_custom_css()
@@ -701,8 +702,9 @@ if not cap_data.empty:
         st.metric("Spread (Range)", f"{int(cap_data.min()):,} to {int(cap_data.max()):,} seats")
 
     with col3:
-        total_seats_per_match = cap_data.sum()
-        st.metric("Seats Across All Venues", f"{int(total_seats_per_match):,}")
+        # Sum unique venue capacities (not per-match — 104 matches reuse 16 venues)
+        unique_seats = filtered.groupby('stadium_name')['venue_capacity'].first().sum()
+        st.metric("Seats Across All Venues", f"{int(unique_seats):,}")
         st.metric("Biggest Venue (any stadium)", f"{int(cap_data.max()):,} seats")
         st.metric("Venues Bigger Than Wembley (>80k)", f"{(cap_data > 80000).sum()}")
 
@@ -730,6 +732,8 @@ results_table = filtered.sort_values('date')[[
     'home_score', 'away_score', 'result_type', 'stadium_name', 'city',
     'player_of_the_match_name', 'referee_name',
 ]].copy()
+# Apply famous-name overrides to Player of the Match (raw CSV uses full legal names)
+results_table['player_of_the_match_name'] = results_table['player_of_the_match_name'].apply(_famous_name)
 results_table['date'] = results_table['date'].dt.strftime('%b %d')
 results_table = results_table.rename(columns={
     'date': 'Date', 'stage_name': 'Stage',

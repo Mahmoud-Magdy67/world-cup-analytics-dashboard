@@ -262,6 +262,37 @@ _FAMOUS_NAME_OVERRIDES: dict[str, str] = {
     "Carl Anders Theodor Starfelt": "Carl Starfelt",
     "Angus Fraser James Gunn": "Angus Gunn",
     "Charles Marc De Ketelaere": "Charles De Ketelaere",
+    # --- POTM column fixes (matches_detailed.csv uses different name forms) ---
+    "Virgil Van Dijk": "Virgil van Dijk",       # CSV capitalizes "Van"
+    "Ronaldo Cristiano Ronaldo": "Cristiano Ronaldo",  # CSV duplicates
+    "Lamine Yamal Yamal": "Lamine Yamal",        # CSV duplicates surname
+    "Riyad Karim Mahrez": "Riyad Mahrez",
+    "Folarin Jolaoluwa Balogun": "Folarin Balogun",
+    "Breel Donald Embolo": "Breel Embolo",
+    "Antonio Eromonsele Nordby Nusa": "Antonio Nusa",
+    "Pedro Antonio Porro": "Pedro Porro",
+    "Pedro Joao Neves": "Pedro Gonçalves",        # aka Pote
+    "Diogo Diogo Costa": "Diogo Costa",           # CSV duplicates first name
+    "Matheus Matheus Cunha": "Matheus Cunha",     # CSV duplicates first name
+    "Jhon Adolfo Arias": "Jhon Arias",
+    "Nilson David Angulo": "Nilson Angulo",
+    "Luis Francisco Romo": "Luis Romo",
+    "Roberto Junior Fernandez": "Roberto Fernández",
+    "Orlando Daniel Gill": "Orlando Gill",
+    "Malik Leon Tillman": "Malik Tillman",
+    "Ali Reza Beiranvand": "Alireza Beiranvand",
+    "Eloy Victor Room": "Eloy Room",
+    "Johan Kula Manzambi": "Johan Manzambi",
+    "Ashour Metwaly Emam": "Ashour Emam",
+    "Ibrahim Mahmoud Abunada": "Ibrahim Abunada",
+    "Iyad Ali Ali Olwan": "Iyad Olwan",
+    "Khalil Mohammed Alowais": "Khalil Al-Owais",
+    "Ismaila Sarr": "Ismaila Sarr",
+    "Antoine Serlom Semenyo": "Antoine Semenyo",
+    "Iliman Cheikh Baroy Ndiaye": "Iliman Ndiaye",
+    "Issa Laye Lucas Jean Diop": "Issa Diop",
+    "Ismaël Kenneth Jordan Kone": "Ismaël Koné",
+    "Youri Marion Tielemans": "Youri Tielemans",
 }
 
 

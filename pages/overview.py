@@ -260,7 +260,7 @@ if not upsets_df.empty:
         f"**{biggest['loser']}** (Elo {biggest['loser_elo']}, a {biggest['elo_gap']}-point gap) "
         f"in the {biggest['stage']} ({biggest['score']}). "
         f"Knockout football rewards tactical discipline over rating pedigree — "
-        f"{sum(upsets_df['stage'] != 'Group Stage')}/12 upsets came in the knockout rounds."
+        f"{sum(upsets_df['stage'] != 'Group Stage')}/{len(upsets_df)} upsets came in the knockout rounds."
     )
 else:
     st.info("No upset data available.")

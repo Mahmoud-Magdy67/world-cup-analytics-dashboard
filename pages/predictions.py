@@ -38,7 +38,12 @@ if strength.empty or matches.empty:
 # ============================================================================
 # Only true knockout rounds (exclude Group Stage)
 KO_STAGES = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third-place match', 'Final']
-KO_DEPTH = {name: i for i, name in enumerate(KO_STAGES)}  # R32=0 ... Final=5
+# Depth reflects tournament progression: R32 earlist exit, Final is deepest.
+# Semi-finals and Third-place match share the same depth (both are top-4),
+# so a semifinal loser who then played the 3rd-place match doesn't appear
+# to have progressed "deeper" than a team that only reached the semis.
+KO_DEPTH = {'Round of 32': 0, 'Round of 16': 1, 'Quarter-finals': 2,
+            'Semi-finals': 3, 'Third-place match': 3, 'Final': 4}
 
 knockouts = matches[matches['stage_name'].isin(KO_STAGES)].copy()
 
@@ -147,7 +152,7 @@ top24 = df.head(24).copy()
 top24['actual_outcome'] = pd.Categorical(top24['actual_outcome'], categories=outcome_order, ordered=True)
 color_map = {
     'Champion': '#FFD700', 'Finalist': '#C0C0C0', 'Third-place match': '#CD7F32',
-    'Semifinals': '#FF004D', 'Quarter-finals': '#7B00FF',
+    'Semi-finals': '#FF004D', 'Quarter-finals': '#7B00FF',
     'Round of 16': '#00F0FF', 'Round of 32': '#00FF00', 'Group Stage': '#A0A0A0',
 }
 
