@@ -629,7 +629,7 @@ if not xg_df.empty:
     team_xga = home_xga.merge(away_xga, on='team', how='left').fillna(0)
     team_xg_stats = team_xg.merge(team_xga, on='team', how='left')
     team_xg_stats['xg_for'] = (team_xg_stats['xg_for_x'] + team_xg_stats['xg_for_y']) / 2
-    team_xg_stats['goals_for'] = (team_xg_stats['g_for_x'] + team_xg_stats['g_for_y']) / 2  # not used
+    team_xg_stats['goals_for'] = (team_xg_stats['goals_for_x'] + team_xg_stats['goals_for_y']) / 2  # not used
     team_xg_stats['xg_against'] = (team_xg_stats['xg_against_x'] + team_xg_stats['xg_against_y']) / 2
     team_xg_stats['xg_diff'] = team_xg_stats['xg_for'] - team_xg_stats['xg_against']
     team_xg_stats = team_xg_stats[['team', 'xg_for', 'xg_against', 'xg_diff']].sort_values('xg_for', ascending=False)
