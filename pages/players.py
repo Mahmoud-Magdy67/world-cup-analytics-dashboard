@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
+from pages._shared_enhanced import load_custom_css, page_header, page_hero, info_card, apply_dark_text_theme
 from data.real_wc26_players import (
     get_real_wc26_players, get_real_wc26_player_summary,
     get_real_wc26_top_scorers, get_real_wc26_top_assists,
@@ -20,10 +20,11 @@ from data.real_wc26_players import (
 
 load_custom_css()
 
-page_header(
+page_hero(
     "Player Analytics",
     "Real World Cup 2026 individual performance — 1,248 squad players across 48 nations.",
-    image_url="assets/logo.png"
+    chips=["1,248 Players", "48 Nations", "Top Scorer: Mbappé (10)"],
+    trophy="🥇",
 )
 
 FWC26_RED = "#C8102E"

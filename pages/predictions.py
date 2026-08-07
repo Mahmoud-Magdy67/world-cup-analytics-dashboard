@@ -13,16 +13,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
+from pages._shared_enhanced import load_custom_css, page_header, page_hero, info_card, apply_dark_text_theme
 from data.real_wc26 import (
     get_real_wc26_team_strength, get_real_wc26_matches, STAGE_ORDER,
 )
 
 load_custom_css()
-page_header(
+page_hero(
     "Strength Index vs Outcomes",
     "Pre-tournament Elo / FIFA ranking strength, compared to how far each team actually went.",
-    image_url="assets/logo.png",
+    chips=["Elo-based", "48 Teams", "Champion: Spain"],
+    trophy="🔮",
 )
 
 with st.spinner("Loading team strength and knockout bracket..."):

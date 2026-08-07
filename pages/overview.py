@@ -20,10 +20,11 @@ from data.real_wc26 import (
 
 load_custom_css()
 
-page_header(
+page_hero(
     "Tournament Analysis",
     "FIFA World Cup 2026 — post-tournament retrospective on the real results",
-    image_url="assets/logo.png"
+    chips=["🇪🇸 Spain · Champions", "104 Matches", "308 Goals", "2.96 / match", "16 Venues"],
+    trophy="🏆",
 )
 
 # ============================================================================

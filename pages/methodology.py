@@ -10,7 +10,7 @@ every number on the dashboard is traceable to a CSV in the Kaggle dataset.
 import streamlit as st
 import pandas as pd
 import os
-from pages._shared_enhanced import load_custom_css, page_header, info_card
+from pages._shared_enhanced import load_custom_css, page_header, page_hero, info_card
 from data.real_wc26 import (
     get_real_wc26_matches, get_real_wc26_team_strength,
     get_real_wc26_team_stats, get_real_wc26_summary,
@@ -18,10 +18,11 @@ from data.real_wc26 import (
 )
 
 load_custom_css()
-page_header(
+page_hero(
     "Data & Methodology",
     "How this dashboard works — data source, schema, derived metrics, limitations.",
-    image_url="assets/logo.png",
+    chips=["Kaggle Dataset", "12 CSVs", "9,369 rows", "CC0-1.0"],
+    trophy="📊",
 )
 
 # ============================================================================
