@@ -19,7 +19,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, page_hero, info_card, apply_dark_text_theme
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from data.real_wc26 import (
     get_real_wc26_team_strength, get_real_wc26_match_team_stats,
     get_real_wc26_teams, get_real_wc26_matches, STAGE_ORDER,
@@ -29,11 +29,10 @@ from data.real_wc26 import (
 load_custom_css()
 
 # Header
-page_hero(
+page_header(
     "Team Analytics",
     "Deep dive into team strengths, tactical balances, and market valuations from real WC26 data.",
-    chips=["48 Teams", "6 Confederations", "Spain Elo 2171"],
-    trophy="🏅",
+    image_url="assets/logo.png"
 )
 
 # ============================================================================

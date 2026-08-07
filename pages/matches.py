@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, page_hero, info_card, apply_dark_text_theme
+from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
 from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 from data.real_wc26 import (
@@ -24,11 +24,10 @@ from data.real_wc26_players import _famous_name
 load_custom_css()
 
 # Header
-page_hero(
+page_header(
     "Match Analysis",
     "Comprehensive match schedule, venue analysis, and fixture insights from the real WC26 results.",
-    chips=["104 Matches", "308 Goals", "16 Venues", "3 Nations"],
-    trophy="⚽",
+    image_url="assets/logo.png"
 )
 
 # ============================================================================

@@ -261,87 +261,6 @@ def load_custom_css():
     .tier-contender { background: #7B00FF; color: white; }
     .tier-dark-horse { background: #00F0FF; color: black; }
     .tier-underdog { background: #ffffff; color: black; border: 2px solid #000000; }
-
-    /* ===== POLISH / ANIMATION LAYER (FWC26, CSS-only, no logic) ===== */
-    @keyframes wc-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes wc-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    @keyframes wc-ball-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes wc-grad-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    @keyframes wc-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-
-    .stApp .block-container > div { animation: wc-fade-up 0.5s ease both; }
-
-    [data-testid="stMetric"] {
-        animation: wc-fade-up 0.6s ease both;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    [data-testid="stMetric"]:hover {
-        transform: translate(-3px, -3px);
-        box-shadow: 10px 10px 0px #7B00FF, 0 0 24px rgba(0, 240, 255, 0.35) !important;
-    }
-    [data-testid="stMetric"]::after {
-        content: "";
-        position: absolute; top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
-        background-size: 200% 100%;
-        opacity: 0;
-        pointer-events: none;
-    }
-    [data-testid="stMetric"]:hover::after { opacity: 1; animation: wc-shimmer 0.9s ease; }
-
-    h1 {
-        background: linear-gradient(90deg, #000000, #FF004D, #7B00FF, #00F0FF, #000000);
-        background-size: 300% 100%;
-        -webkit-background-clip: text; background-clip: text;
-        -webkit-text-fill-color: transparent; color: transparent;
-        animation: wc-grad-flow 8s ease infinite;
-    }
-    h2 {
-        background: linear-gradient(90deg, #000000, #7B00FF, #00F0FF, #000000);
-        background-size: 300% 100%;
-        -webkit-background-clip: text; background-clip: text;
-        -webkit-text-fill-color: transparent; color: transparent;
-        animation: wc-grad-flow 10s ease infinite;
-    }
-
-    .wc-hero {
-        position: relative;
-        background: linear-gradient(120deg, #000000 0%, #7B00FF 35%, #FF004D 65%, #00F0FF 100%);
-        background-size: 200% 100%;
-        animation: wc-grad-flow 10s ease infinite;
-        border-radius: 0px;
-        padding: 2.4rem 2rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 10px 10px 0px #000000;
-        color: #ffffff;
-        overflow: hidden;
-    }
-    .wc-hero h1 { margin: 0; font-size: 3.6rem !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff; text-shadow: 3px 3px 0px #000000; letter-spacing: 0.06em; }
-    .wc-hero p { color: #ffffff !important; font-size: 1.35rem; margin: 0.4rem 0 0; letter-spacing: 0.04em; opacity: 0.95; }
-    .wc-hero .ball { position: absolute; font-size: 2.6rem; opacity: 0.5; animation: wc-ball-spin 6s linear infinite; pointer-events: none; }
-    .wc-hero .trophy { position: absolute; font-size: 4rem; right: 2rem; top: 50%; transform: translateY(-50%); animation: wc-pulse 3s ease-in-out infinite; }
-
-    .wc-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.8rem 0 0; }
-    .wc-chip {
-        background: rgba(255,255,255,0.18);
-        border: 1px solid rgba(255,255,255,0.5);
-        border-radius: 999px;
-        padding: 0.3rem 0.9rem;
-        color: #fff; font-size: 0.95rem; letter-spacing: 0.05em;
-        backdrop-filter: blur(3px);
-        display: inline-flex; align-items: center; gap: 0.3rem;
-    }
-    .wc-chip .mini-ball { display: inline-block; animation: wc-ball-spin 4s linear infinite; }
-
-    [data-testid="stDataFrame"] { border-top: 6px solid #FF004D; }
-    .stButton > button { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-    .stButton > button:hover { transform: translateY(-2px) scale(1.01); box-shadow: 5px 5px 0px #000000; }
-    .info-card { animation: wc-fade-up 0.5s ease both; }
-    h3 { position: relative; padding-left: 0.9rem; }
-    h3::before { content: ""; position: absolute; left: 0; top: 12%; height: 78%; width: 6px; background: linear-gradient(#FF004D, #00F0FF); border-radius: 3px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -373,39 +292,6 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
         st.title(title)
         st.markdown(f"<p style='color: #000000; font-size: 1.1rem; margin-top: -1rem;'>{description}</p>", unsafe_allow_html=True)
     st.divider()
-
-
-def page_hero(
-    title: str,
-    description: str,
-    chips: Optional[List[str]] = None,
-    trophy: str = "🏆",
-):
-    """Animated WC-style hero banner: flowing brand gradient, trophy, and chips.
-
-    Purely presentational — no logic. Calls st.markdown with the .wc-hero classes
-    defined in load_custom_css(). Use in place of page_header() for a bolder look.
-    """
-    chips = chips or []
-    chip_html = ""
-    if chips:
-        chips_html = "".join(
-            f'<span class="wc-chip"><span class="mini-ball">⚽</span>{c}</span>'
-            for c in chips
-        )
-        chip_html = f'<div class="wc-chips">{chips_html}</div>'
-    st.markdown(
-        f'<div class="wc-hero">'
-        f'<span class="ball" style="left:8%; top:15%;">⚽</span>'
-        f'<span class="ball" style="left:22%; bottom:10%; font-size:1.8rem;">🏁</span>'
-        f'<span class="ball" style="left:60%; top:20%; font-size:2rem;">⚽</span>'
-        f'<span class="trophy" style="right:3rem;">{trophy}</span>'
-        f'<h1>{title}</h1>'
-        f'<p>{description}</p>'
-        f'{chip_html}'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
 
 def apply_dark_text_theme(fig):
     """Force chart text to a dark color on a white background.
