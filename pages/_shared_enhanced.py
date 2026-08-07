@@ -80,6 +80,14 @@ import pandas as pd
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 
+# Explicit public API — guarantees `from pages._shared_enhanced import *`
+# exposes page_hero and the other helpers on every Python/Streamlit version.
+__all__ = [
+    'load_custom_css', 'page_header', 'page_hero', 'apply_dark_text_theme',
+    'kpi_cards', 'info_card', 'probability_badge', 'team_tier_badge',
+    'create_radar_chart',
+]
+
 # ============================================================================
 # CUSTOM CSS - Professional Dark Theme
 # ============================================================================
