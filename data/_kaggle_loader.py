@@ -4,15 +4,25 @@ All WC26 source CSVs live under data/kaggle_wc26/. Twelve files, 9,369 rows tota
 all from the mominullptr/fifa-world-cup-2026-dataset (CC0-1.0, sofascore.com
 verified). See data/kaggle_wc26/SOURCE.txt for the full citation.
 
+S3 mode: If AWS credentials are available (env vars or IAM role), CSVs are read
+from s3://wc26-kaggle-data/kaggle_wc26/ instead of local files. This enables
+Athena/Glue/other AWS operations on the data. Local files are used as fallback.
+
 This module exposes:
   - path constants (DATA_DIR, _CSVS)
   - _read(name) -> DataFrame  (cached via streamlit.cache_data where applicable)
   - id->name resolution helpers (player_id, team_id, referee_id, venue_id, match_id)
 """
 import os
+import io
 import pandas as pd
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kaggle_wc26")
+
+# S3 configuration (fallback to local files if not set)
+S3_BUCKET = os.getenv("WC26_S3_BUCKET", "wc26-kaggle-data")
+S3_PREFIX = os.getenv("WC26_S3_PREFIX", "kaggle_wc26")
+S3_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
 # File map: <public_name> -> <csv filename>
 FILES = {
@@ -30,10 +40,46 @@ FILES = {
     "tournament_stages": "tournament_stages.csv",     # 7 stages
 }
 
+# --- S3 client (lazy init) ---
+_s3_client = None
+
+def _get_s3_client():
+    """Return an S3 client if AWS credentials are available, else None."""
+    global _s3_client
+    if _s3_client is not None:
+        return _s3_client
+    try:
+        import boto3
+        key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+        if key_id and secret:
+            _s3_client = boto3.client("s3",
+                aws_access_key_id=key_id,
+                aws_secret_access_key=secret,
+                region_name=S3_REGION)
+        else:
+            # Try IAM role / default credential chain
+            _s3_client = boto3.client("s3", region_name=S3_REGION)
+    except Exception:
+        _s3_client = None
+    return _s3_client
+
 
 def _read(name: str) -> pd.DataFrame:
-    """Read one of the Kaggle CSVs by short name. Returns a fresh DataFrame."""
+    """Read one of the Kaggle CSVs by short name. Returns a fresh DataFrame.
+
+    Reads from S3 if AWS credentials are available, else falls back to local files.
+    """
     fname = FILES[name]
+    s3 = _get_s3_client()
+    if s3 is not None:
+        try:
+            s3_key = f"{S3_PREFIX}/{fname}"
+            obj = s3.get_object(Bucket=S3_BUCKET, Key=s3_key)
+            return pd.read_csv(io.BytesIO(obj["Body"].read()))
+        except Exception:
+            pass  # fall through to local
+    # Local fallback
     path = os.path.join(DATA_DIR, fname)
     return pd.read_csv(path)
 
