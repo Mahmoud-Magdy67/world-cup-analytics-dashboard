@@ -26,7 +26,7 @@ from data.real_wc26 import (
 )
 
 # Apply CSS
-load_custom_css()
+load_custom_css("teams")
 
 # Header
 page_header(

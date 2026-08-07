@@ -17,7 +17,7 @@ from data.real_wc26 import (
     get_real_wc26_knockout_bracket, STAGE_ORDER,
 )
 
-load_custom_css()
+load_custom_css("methodology")
 page_header(
     "Data & Methodology",
     "How this dashboard works — data source, schema, derived metrics, limitations.",

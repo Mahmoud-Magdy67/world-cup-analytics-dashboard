@@ -1,5 +1,4 @@
-"""
-Shared components and utilities for World Cup Analytics Dashboard.
+"""Shared components and utilities for World Cup Analytics Dashboard.
 Professional UI components, custom CSS, and reusable visualizations.
 """
 try:
@@ -10,11 +9,11 @@ except ImportError:
         def __init__(self):
             # Provide a dummy column_config submodule with NumberColumn
             class DummyColumnConfig:
-                            def __getattr__(self, name):
-                                # Return a dummy placeholder for any column config attribute
-                                def dummy(*args, **kwargs):
-                                    return None
-                                return dummy
+                def __getattr__(self, name):
+                    # Return a dummy placeholder for any column config attribute
+                    def dummy(*args, **kwargs):
+                        return None
+                    return dummy
             self.column_config = DummyColumnConfig()
         def __enter__(self):
             return self
@@ -84,30 +83,47 @@ import numpy as np
 # CUSTOM CSS - Professional Dark Theme
 # ============================================================================
 
-def load_custom_css():
-    """Inject custom CSS for official FWC26 light theme with background."""
-    st.markdown("""
+def load_custom_css(page: str = "default"):
+    """Inject custom CSS for official FWC26 light theme with background.
+
+    Args:
+        page: Page identifier to select appropriate background image.
+              Options: 'overview', 'teams', 'players', 'matches', 'predictions', 'methodology', 'default'
+    """
+    # Page-specific background images (high-quality football/WC images from Unsplash)
+    bg_images = {
+        "overview": "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2000&auto=format&fit=crop",  # stadium aerial
+            "teams": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000&auto=format&fit=crop",  # team huddle
+            "players": "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?q=80&w=2000&auto=format&fit=crop",  # player action
+            "matches": "https://images.unsplash.com/photo-1495567720989-cebdbdd97913?q=80&w=2000&auto=format&fit=crop",  # match night
+            "predictions": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000&auto=format&fit=crop",  # tactical
+            "methodology": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2000&auto=format&fit=crop",  # data/analytics
+            "default": "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2000&auto=format&fit=crop",
+    }
+    bg_url = bg_images.get(page, bg_images["default"])
+
+    st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
-    
+
     /* Global Styles & Background */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
         background-color: #ffffff;
-        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('https://images.unsplash.com/photo-1518605368461-1e125228114e?q=80&w=2000&auto=format&fit=crop') !important;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('{bg_url}') !important;
         background-size: cover !important;
         background-position: center !important;
         background-attachment: fixed !important;
-    }
-    
+    }}
+
     /* Fix sidebar collapse/expand icon — use a proper hamburger menu */
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"] {{
         /* Streamlit renders an SVG arrow inside; replace visuals with CSS */
-    }
-    [data-testid="collapsedControl"] svg {
+    }}
+    [data-testid="collapsedControl"] svg {{
         display: none !important;
-    }
+    }}
     /* Inject a hamburger icon via ::before */
-    [data-testid="collapsedControl"]::before {
+    [data-testid="collapsedControl"]::before {{
         content: "";
         display: inline-block;
         width: 22px;
@@ -116,75 +132,75 @@ def load_custom_css():
         box-shadow: 0 6px 0 #000000, 0 12px 0 #000000;
         margin: 8px 4px;
         border-radius: 2px;
-    }
-    
-    
+    }}
+
+
     /* Force Bebas Neue on main text but preserve Material Icons for Streamlit UI */
-    h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, button {
+    h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, button {{
         font-family: 'Bebas Neue', sans-serif;
         letter-spacing: 0.05em;
-    }
-    
+    }}
+
     /* Explicitly protect material icons so arrows don't break */
-    .material-icons, [class^="st-"] {
+    .material-icons, [class^="st-"] {{
         font-family: inherit !important;
         letter-spacing: normal !important;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
+    }}
+
+    h1, h2, h3, h4, h5, h6 {{
         color: #000000 !important;
         text-transform: uppercase;
-    }
-    
-    h1 { font-size: 3.5rem !important; margin-bottom: 0.5rem !important; }
-    h2 { font-size: 2.5rem !important; }
-    h3 { font-size: 2rem !important; }
-    
-    p, span, div, li, td, th {
+    }}
+
+    h1 {{ font-size: 3.5rem !important; margin-bottom: 0.5rem !important; }}
+    h2 {{ font-size: 2.5rem !important; }}
+    h3 {{ font-size: 2rem !important; }}
+
+    p, span, div, li, td, th {{
         color: #000000;
         font-size: 1.1rem;
-    }
-    
+    }}
+
     /* Metric Cards */
-    [data-testid="stMetric"] {
+    [data-testid="stMetric"] {{
         background: rgba(255, 255, 255, 0.9);
         border-radius: 0px;
         padding: 1.5rem;
         border: 4px solid #000000;
         box-shadow: 6px 6px 0px #FF004D;
         transition: all 0.2s ease;
-    }
-    
-    [data-testid="stMetric"]:hover {
+    }}
+
+    [data-testid="stMetric"]:hover {{
         transform: translate(-2px, -2px);
         box-shadow: 8px 8px 0px #7B00FF;
-    }
-    
-    [data-testid="stMetricValue"] {
+    }}
+
+    [data-testid="stMetricValue"] {{
         color: #000000 !important;
         font-size: 3.5rem !important;
         font-weight: 400 !important;
-    }
-    
-    [data-testid="stMetricLabel"] {
+    }}
+
+    [data-testid="stMetricLabel"] {{
         color: #000000 !important;
         font-size: 1.2rem !important;
         text-transform: uppercase !important;
-    }
-    
-    [data-testid="stMetricDelta"] {
+    }}
+
+    [data-testid="stMetricDelta"] {{
         color: #00B347 !important;
         font-size: 1.2rem !important;
-    }
-    
+    }}
+
     /* Sidebar */
-    [data-testid="stSidebar"] {
+    [data-testid="stSidebar"] {{
         background-color: #f3f4f6;
         border-right: 4px solid #000000;
-    }
-    
+    }}
+
     /* Buttons */
-    .stButton > button {
+    .stButton > button {{
         background-color: #ffffff;
         color: #000000 !important;
         border: 2px solid #000000;
@@ -193,33 +209,33 @@ def load_custom_css():
         font-size: 1.2rem !important;
         text-transform: uppercase;
         transition: all 0.2s ease;
-    }
-    
-    .stButton > button:hover {
+    }}
+
+    .stButton > button:hover {{
         background-color: #FF004D;
         color: #ffffff !important;
         transform: translateY(-2px);
         box-shadow: 4px 4px 0px #000000;
-    }
-    
+    }}
+
     /* Dataframes */
-    [data-testid="stDataFrame"] {
+    [data-testid="stDataFrame"] {{
         border-radius: 0px;
         overflow: hidden;
         border: 2px solid #000000;
         background: rgba(255, 255, 255, 0.9) !important;
-    }
-    
+    }}
+
     /* Select boxes */
-    [data-testid="stSelectbox"] > div {
+    [data-testid="stSelectbox"] > div {{
         background: #ffffff;
         border: 2px solid #000000;
         border-radius: 0px;
         color: #000000;
-    }
-    
+    }}
+
     /* Info Cards */
-    .info-card {
+    .info-card {{
         background: rgba(255, 255, 255, 0.95);
         border-radius: 0px;
         padding: 1.5rem;
@@ -227,22 +243,22 @@ def load_custom_css():
         border: 3px solid #000000;
         border-left: 8px solid #00F0FF;
         box-shadow: 4px 4px 0px #000000;
-    }
-    
-    .info-card h4 {
+    }}
+
+    .info-card h4 {{
         color: #000000 !important;
         margin-top: 0 !important;
         font-size: 1.8rem !important;
-    }
-    
-    .info-card p {
+    }}
+
+    .info-card p {{
         color: #000000 !important;
         font-size: 1.2rem !important;
         line-height: 1.4 !important;
-    }
-    
+    }}
+
     /* Probability badges */
-    .prob-badge {
+    .prob-badge {{
         display: inline-block;
         padding: 0.25rem 0.75rem;
         border-radius: 0px;
@@ -250,17 +266,17 @@ def load_custom_css():
         margin: 0.25rem;
         text-transform: uppercase;
         border: 2px solid #000000;
-    }
-    
-    .prob-high { background: #FF004D; color: white; }
-    .prob-medium { background: #7B00FF; color: white; }
-    .prob-low { background: #00FF00; color: black; }
-    
+    }}
+
+    .prob-high {{ background: #FF004D; color: white; }}
+    .prob-medium {{ background: #7B00FF; color: white; }}
+    .prob-low {{ background: #00FF00; color: black; }}
+
     /* Team tier badges */
-    .tier-favorite { background: #000000; color: white; }
-    .tier-contender { background: #7B00FF; color: white; }
-    .tier-dark-horse { background: #00F0FF; color: black; }
-    .tier-underdog { background: #ffffff; color: black; border: 2px solid #000000; }
+    .tier-favorite {{ background: #000000; color: white; }}
+    .tier-contender {{ background: #7B00FF; color: white; }}
+    .tier-dark-horse {{ background: #00F0FF; color: black; }}
+    .tier-underdog {{ background: #ffffff; color: black; border: 2px solid #000000; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -272,7 +288,7 @@ def page_header(title: str, description: str, icon: str = "⚽", image_url: str 
     """Create a professional page header with icon/image and description."""
     import os
     import base64
-    
+
     col1, col2 = st.columns([1, 10])
     with col1:
         if image_url:
@@ -313,11 +329,11 @@ def apply_dark_text_theme(fig):
     # Update only primary axes (xaxis, yaxis)
     for axis_name in ['xaxis', 'yaxis']:
         if axis_name in fig.layout:
-            fig.update_layout(**{
+            fig.update_layout(**{{
                 f'{axis_name}_tickfont': dict(color=DARK, family='Noto Sans'),
                 f'{axis_name}_title_font': dict(color=DARK, family='Noto Sans'),
                 f'{axis_name}_gridcolor': '#e0e0e0',
-            })
+            }})
     # Color axis (for heatmaps) if present
     if 'coloraxis' in fig.layout:
         fig.update_layout(coloraxis_colorbar=dict(tickfont=dict(color=DARK)))
@@ -327,14 +343,14 @@ def apply_dark_text_theme(fig):
 def kpi_cards(items: List[Tuple[str, Any, Optional[str]]], cols: Optional[int] = None):
     """
     Create professional KPI cards with icons and deltas.
-    
+
     Args:
         items: List of (label, value, delta) tuples
         cols: Number of columns (default: len(items))
     """
     if cols is None:
         cols = len(items)
-    
+
     columns = st.columns(cols)
     for i, (col, (label, value, delta)) in enumerate(zip(columns, items)):
         with col:
@@ -361,7 +377,7 @@ def info_card(title: str, content: str, icon: str = "ℹ️"):
 def probability_badge(prob: float, format_type: str = "percent") -> str:
     """
     Create a colored probability badge.
-    
+
     Args:
         prob: Probability value (0-100 for percent, 0-1 for decimal)
         format_type: 'percent' or 'decimal'
@@ -370,24 +386,24 @@ def probability_badge(prob: float, format_type: str = "percent") -> str:
         pct = prob
     else:
         pct = prob * 100
-    
+
     if pct >= 50:
         css_class = "prob-high"
     elif pct >= 20:
         css_class = "prob-medium"
     else:
         css_class = "prob-low"
-    
+
     return f'<span class="prob-badge {css_class}">{pct:.1f}%</span>'
 
 def team_tier_badge(tier: str) -> str:
     """Create a team tier badge."""
-    tier_map = {
+    tier_map = {{
         "Top 5": "tier-favorite",
         "Top 10": "tier-contender",
         "Dark Horse": "tier-dark-horse",
         "Underdog": "tier-underdog"
-    }
+    }}
     css_class = tier_map.get(tier, "tier-underdog")
     return f'<span class="prob-badge {css_class}">{tier}</span>'
 
@@ -399,314 +415,67 @@ def create_radar_chart(
     data: pd.DataFrame,
     categories: List[str],
     values: List[float],
-    title: str = "Player Radar",
-    max_values: Optional[List[float]] = None
-) -> go.Figure:
-    """
-    Create a professional radar chart.
-    
-    Args:
-        data: DataFrame with player stats
-        categories: List of stat categories
-        values: List of values for each category
-        title: Chart title
-        max_values: Optional max values for each category
-    """
+    title: str = "Radar Chart",
+    color: str = "#FF004D",
+    max_val: Optional[float] = None
+):
+    """Create a radar chart for player/team stats."""
+    if max_val is None:
+        max_val = max(values) * 1.2
+
     fig = go.Figure()
-    
-    # Add player data
     fig.add_trace(go.Scatterpolar(
         r=values,
         theta=categories,
         fill='toself',
-        name='Player',
-        line=dict(color='#60a5fa', width=3),
-        fillcolor='rgba(96, 165, 250, 0.3)'
+        line=dict(color=color, width=3),
+        fillcolor=color.replace('#', '#') + '40',
+        name=title
     ))
-    
-    # Add max values if provided
-    if max_values:
-        fig.add_trace(go.Scatterpolar(
-            r=max_values,
-            theta=categories,
-            fill='toself',
-            name='Max',
-            line=dict(color='#374151', width=2, dash='dash'),
-            fillcolor='rgba(55, 65, 81, 0.1)',
-            showlegend=False
-        ))
-    
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, max(max_values) if max_values else max(values)],
-                gridcolor='#374151',
-                linecolor='#6b7280'
-            ),
-            angularaxis=dict(
-                gridcolor='#374151',
-                linecolor='#6b7280',
-                tickfont=dict(size=12, color='#9ca3af')
-            ),
-            bgcolor='rgba(0,0,0,0)'
+            radialaxis=dict(visible=True, range=[0, max_val], color='#000000'),
+            angularaxis=dict(color='#000000'),
         ),
-        showlegend=True,
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        height=500,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=20, r=20, t=60, b=20)
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#ffffff',
+        font=dict(color='#2B1E16', family='Noto Sans'),
+        title=dict(text=title, font=dict(color='#000000', family='Bebas Neue', size=20)),
     )
-    
     return fig
 
-def create_funnel_chart(
-    stages: List[str],
-    values: List[float],
-    title: str = "Tournament Funnel"
-) -> go.Figure:
-    """Create a funnel chart for stage probabilities."""
-    fig = go.Figure(go.Funnel(
-        y=stages,
-        x=values,
-        textposition="inside",
-        textinfo="value+percent initial",
-        opacity=0.85,
-        marker=dict(
-            color=["#7c3aed", "#60a5fa", "#3b82f6", "#10b981", "#f59e0b", "#dc2626"],
-            line=dict(width=[3, 3, 3, 3, 3, 3], color=["white"]*len(stages))
-        ),
-        connector=dict(line=dict(color="#374151", dash="dash", width=2))
-    ))
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff', size=12),
-        height=400,
-        margin=dict(l=20, r=20, t=60, b=20)
-    )
-    
-    return fig
 
-def create_heatmap(
-    data: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    z_col: str,
-    title: str = "Heatmap",
-    colorscale: str = "Blues"
-) -> go.Figure:
-    """Create a professional heatmap."""
-    fig = go.Figure(data=go.Heatmap(
-        z=data[z_col],
-        x=data[x_col],
-        y=data[y_col],
-        colorscale=colorscale,
-        hovertemplate='%{y} vs %{x}<extra></extra><br>Value: %{z:.2f}'
-    ))
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        yaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        height=500,
-        margin=dict(l=60, r=20, t=60, b=60)
-    )
-    
-    return fig
-
-def create_scatter_with_trend(
-    data: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    hover_name: str,
-    color_col: Optional[str] = None,
+def create_conf_scatter(
+    x_vals: List[float],
+    y_vals: List[float],
+    labels: List[str],
+    x_label: str,
+    y_label: str,
     title: str = "Scatter Plot",
-    trendline: str = "ols"
-) -> go.Figure:
-    """Create a scatter plot with trendline."""
-    fig = px.scatter(
-        data,
-        x=x_col,
-        y=y_col,
-        hover_name=hover_name,
-        color=color_col,
-        trendline=trendline,
-        title=title,
-        color_discrete_sequence=px.colors.sequential.Blues
-    )
-    
+    colors: Optional[List[str]] = None
+):
+    """Create a scatter plot with confidence intervals or groupings."""
+    if colors is None:
+        colors = ['#FF004D'] * len(x_vals)
+
+    fig = go.Figure()
+    for i, (x, y, label) in enumerate(zip(x_vals, y_vals, labels)):
+        fig.add_trace(go.Scatter(
+            x=[x],
+            y=[y],
+            mode='markers+text',
+            text=[label],
+            textposition='top center',
+            marker=dict(size=14, color=colors[i], line=dict(width=2, color='#000000')),
+            name=label,
+            showlegend=False
+        ))
     fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        yaxis=dict(gridcolor='#374151', linecolor='#6b7280'),
-        legend=dict(
-            bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#ffffff')
-        ),
-        height=500,
-        margin=dict(l=60, r=20, t=60, b=60)
+        xaxis_title=x_label,
+        yaxis_title=y_label,
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#ffffff',
+        font=dict(color='#2B1E16', family='Noto Sans'),
+        title=dict(text=title, font=dict(color='#000000', family='Bebas Neue')),
     )
-    
     return fig
-
-def create_treemap(
-    data: pd.DataFrame,
-    path: List[str],
-    values: str,
-    title: str = "Treemap",
-    color: Optional[str] = None
-) -> go.Figure:
-    """Create a treemap visualization."""
-    fig = px.treemap(
-        data,
-        path=path,
-        values=values,
-        color=color,
-        title=title,
-        color_continuous_scale="Blues",
-        hover_data=['values'] if values else None
-    )
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=10, r=10, t=60, b=10),
-        height=600
-    )
-    
-    return fig
-
-def create_sunburst(
-    data: pd.DataFrame,
-    path: List[str],
-    values: str,
-    title: str = "Sunburst"
-) -> go.Figure:
-    """Create a sunburst chart."""
-    fig = px.sunburst(
-        data,
-        path=path,
-        values=values,
-        title=title,
-        color_continuous_scale="Blues",
-        hover_data=['values'] if values else None
-    )
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=18, color='#ffffff'),
-            y=0.95
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=10, r=10, t=60, b=10),
-        height=600
-    )
-    
-    return fig
-
-# ============================================================================
-# FILTER COMPONENTS
-# ============================================================================
-
-def create_team_filter(teams_df: pd.DataFrame, key_prefix: str = "filter") -> Dict[str, Any]:
-    """
-    Create a comprehensive team filter sidebar.
-    
-    Returns dict with selected filters.
-    """
-    st.sidebar.subheader("🔍 Filters")
-    
-    # Confederation filter
-    confederations = ["All"] + sorted(teams_df['confederation'].dropna().unique().tolist())
-    selected_confed = st.sidebar.selectbox(
-        "Confederation",
-        confederations,
-        key=f"{key_prefix}_confed"
-    )
-    
-    # Group filter
-    groups = ["All"] + sorted(teams_df['group_name'].dropna().unique().tolist())
-    selected_group = st.sidebar.selectbox(
-        "Group",
-        groups,
-        key=f"{key_prefix}_group"
-    )
-    
-    # Contender tier filter
-    tiers = ["All"] + sorted(teams_df['contender_tier'].dropna().unique().tolist())
-    selected_tier = st.sidebar.selectbox(
-        "Contender Tier",
-        tiers,
-        key=f"{key_prefix}_tier"
-    )
-    
-    # Build filter query
-    filters = {}
-    if selected_confed != "All":
-        filters['confederation'] = selected_confed
-    if selected_group != "All":
-        filters['group_name'] = selected_group
-    if selected_tier != "All":
-        filters['contender_tier'] = selected_tier
-    
-    return filters
-
-def apply_filters(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFrame:
-    """Apply filters to a DataFrame."""
-    filtered = df.copy()
-    for col, value in filters.items():
-        if col in filtered.columns:
-            filtered = filtered[filtered[col] == value]
-    return filtered
-
-# ============================================================================
-# LOADING STATES
-# ============================================================================
-
-def show_loading(message: str = "Loading data..."):
-    """Show a professional loading spinner."""
-    with st.spinner(message):
-        pass
-
-def show_error(message: str, retry_function=None):
-    """Show an error message with optional retry button."""
-    st.error(f"❌ {message}")
-    if retry_function:
-        if st.button("🔄 Retry"):
-            retry_function()
-            st.rerun()
-
-def show_success(message: str):
-    """Show a success message."""
-    st.success(f"✅ {message}")

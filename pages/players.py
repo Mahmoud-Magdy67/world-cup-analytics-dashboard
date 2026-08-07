@@ -18,7 +18,7 @@ from data.real_wc26_players import (
     get_real_wc26_gk_leaders,
 )
 
-load_custom_css()
+load_custom_css("players")
 
 page_header(
     "Player Analytics",

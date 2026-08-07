@@ -18,7 +18,7 @@ from data.real_wc26 import (
     get_real_wc26_team_strength, get_real_wc26_matches, STAGE_ORDER,
 )
 
-load_custom_css()
+load_custom_css("predictions")
 page_header(
     "Strength Index vs Outcomes",
     "Pre-tournament Elo / FIFA ranking strength, compared to how far each team actually went.",

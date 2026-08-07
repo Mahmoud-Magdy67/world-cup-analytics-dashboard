@@ -21,7 +21,7 @@ from data.real_wc26 import (
 from data.real_wc26_players import _famous_name
 
 # Apply CSS
-load_custom_css()
+load_custom_css("matches")
 
 # Header
 page_header(
