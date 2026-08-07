@@ -4,9 +4,10 @@ All WC26 source CSVs live under data/kaggle_wc26/. Twelve files, 9,369 rows tota
 all from the mominullptr/fifa-world-cup-2026-dataset (CC0-1.0, sofascore.com
 verified). See data/kaggle_wc26/SOURCE.txt for the full citation.
 
-S3 mode: If AWS credentials are available (env vars or IAM role), CSVs are read
-from s3://wc26-kaggle-data/kaggle_wc26/ instead of local files. This enables
-Athena/Glue/other AWS operations on the data. Local files are used as fallback.
+S3 mode: If AWS credentials are available (env vars, Streamlit secrets, or IAM
+role), CSVs are read from s3://wc26-kaggle-data/kaggle_wc26/ instead of local
+files. This enables Athena/Glue/other AWS operations on the data. Local files
+are used as fallback.
 
 This module exposes:
   - path constants (DATA_DIR, _CSVS)
@@ -22,7 +23,6 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kaggle_wc26
 # S3 configuration (fallback to local files if not set)
 S3_BUCKET = os.getenv("WC26_S3_BUCKET", "wc26-kaggle-data")
 S3_PREFIX = os.getenv("WC26_S3_PREFIX", "kaggle_wc26")
-S3_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
 # File map: <public_name> -> <csv filename>
 FILES = {
@@ -40,26 +40,51 @@ FILES = {
     "tournament_stages": "tournament_stages.csv",     # 7 stages
 }
 
+# Track whether we're reading from S3 (for UI display)
+S3_ACTIVE = False
+
+# --- Credential resolution (env vars → Streamlit secrets → IAM role) ---
+def _get_aws_credentials():
+    """Resolve AWS credentials from env vars, Streamlit secrets, or IAM role."""
+    key_id = os.getenv("AWS_ACCESS_KEY_ID")
+    secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+    region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+
+    # Try Streamlit secrets if env vars not set
+    if not key_id or not secret:
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'AWS_ACCESS_KEY_ID' in st.secrets:
+                key_id = st.secrets['AWS_ACCESS_KEY_ID']
+                secret = st.secrets['AWS_SECRET_ACCESS_KEY']
+                region = st.secrets.get('AWS_DEFAULT_REGION', region)
+        except Exception:
+            pass
+
+    return key_id, secret, region
+
+
 # --- S3 client (lazy init) ---
 _s3_client = None
 
 def _get_s3_client():
     """Return an S3 client if AWS credentials are available, else None."""
-    global _s3_client
+    global _s3_client, S3_ACTIVE
     if _s3_client is not None:
         return _s3_client
     try:
         import boto3
-        key_id = os.getenv("AWS_ACCESS_KEY_ID")
-        secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+        key_id, secret, region = _get_aws_credentials()
         if key_id and secret:
             _s3_client = boto3.client("s3",
                 aws_access_key_id=key_id,
                 aws_secret_access_key=secret,
-                region_name=S3_REGION)
+                region_name=region)
+            S3_ACTIVE = True
         else:
             # Try IAM role / default credential chain
-            _s3_client = boto3.client("s3", region_name=S3_REGION)
+            _s3_client = boto3.client("s3", region_name=region)
+            S3_ACTIVE = True
     except Exception:
         _s3_client = None
     return _s3_client

@@ -67,7 +67,7 @@ class DataSourceStatus:
 # Data source status
 # ---------------------------------------------------------------------------
 def get_real_wc26_data_source_status() -> DataSourceStatus:
-    """Health check: counts rows in each Kaggle CSV. No AWS dependency."""
+    """Health check: counts rows in each Kaggle CSV. Reports S3 or local mode."""
     counts: Dict[str, int] = {}
     try:
         counts["teams"] = len(_teams())
@@ -80,13 +80,32 @@ def get_real_wc26_data_source_status() -> DataSourceStatus:
         counts["squads_and_players"] = len(_read("squads_and_players"))
         counts["venues"] = len(_venues())
         counts["referees"] = len(_referees_df())
-        return DataSourceStatus(
-            "kaggle_local",
-            False,
-            "Local Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0-1.0). "
-            "12 CSVs, 9,369 rows. No AWS / network dependency — fully self-contained.",
-            counts,
-        )
+
+        # Check if reading from S3
+        try:
+            from data._kaggle_loader import S3_ACTIVE, S3_BUCKET, S3_PREFIX
+        except ImportError:
+            S3_ACTIVE = False
+            S3_BUCKET = ""
+            S3_PREFIX = ""
+
+        if S3_ACTIVE:
+            return DataSourceStatus(
+                "s3_live",
+                True,
+                f"Live from AWS S3 (s3://{S3_BUCKET}/{S3_PREFIX}/). "
+                f"Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0-1.0). "
+                f"12 CSVs, 9,369 rows.",
+                counts,
+            )
+        else:
+            return DataSourceStatus(
+                "kaggle_local",
+                False,
+                "Local Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0-1.0). "
+                "12 CSVs, 9,369 rows. No AWS / network dependency — fully self-contained.",
+                counts,
+            )
     except Exception as e:
         return DataSourceStatus("kaggle_error", False, f"Kaggle CSV read failed: {str(e)[:150]}", None)
 

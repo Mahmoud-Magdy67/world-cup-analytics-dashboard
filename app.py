@@ -7,7 +7,13 @@ def main():
     st.sidebar.title("World Cup Analytics")
     from data.real_wc26 import get_real_wc26_data_source_status
     status = get_real_wc26_data_source_status()
-    if status.athena_enabled:
+    if status.mode == "s3_live":
+        st.sidebar.success("☁️ Live from AWS S3")
+        st.sidebar.caption(f"s3://wc26-kaggle-data/kaggle_wc26/")
+        if status.tables_available:
+            n_tables = len(status.tables_available)
+            st.sidebar.caption(f"{n_tables} tables loaded from S3")
+    elif status.athena_enabled:
         st.sidebar.success(f"Live data: AWS Athena ({status.mode})")
         if status.tables_available:
             n_tables = len(status.tables_available)
