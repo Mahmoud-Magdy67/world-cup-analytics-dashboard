@@ -115,35 +115,41 @@ def load_custom_css(page: str = "default"):
         background-attachment: fixed !important;
     }}
 
-    /* Fix sidebar collapse/expand icon — use a proper hamburger menu */
+    /* Let Streamlit's native sidebar collapse arrow render properly */
     [data-testid="collapsedControl"] {{
-        /* Streamlit renders an SVG arrow inside; replace visuals with CSS */
-    }}
-    [data-testid="collapsedControl"] svg {{
-        display: none !important;
-    }}
-    /* Inject a hamburger icon via ::before */
-    [data-testid="collapsedControl"]::before {{
-        content: "";
-        display: inline-block;
-        width: 22px;
-        height: 3px;
-        background: #000000;
-        box-shadow: 0 6px 0 #000000, 0 12px 0 #000000;
-        margin: 8px 4px;
-        border-radius: 2px;
+        color: #C8102E !important;
     }}
 
-
-    /* Force Bebas Neue on main text but preserve Material Icons for Streamlit UI */
-    h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, button {{
+    /* Force Bebas Neue on main text — the dashboard's signature look */
+    h1, h2, h3, h4, h5, h6, p, li, td, th, label, button {{
         font-family: 'Bebas Neue', sans-serif;
         letter-spacing: 0.05em;
     }}
 
-    /* Explicitly protect material icons so arrows don't break */
-    .material-icons, [class^="st-"] {{
-        font-family: inherit !important;
+    /* CRITICAL: Restore Material Icons font for Streamlit UI icons
+       Without this, Bebas Neue overrides the icon font and icon names
+       like 'keyboard_double_arrow_left' show as literal text */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    .material-icons,
+    [class*="material"] {{
+        font-family: 'Material Icons', 'Material Symbols Outlined', monospace !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+    }}
+
+    [data-testid="collapsedControl"] span,
+    [data-testid="stSidebarCollapseButton"] span,
+    .material-icons span,
+    [class*="material"] span {{
+        font-family: 'Material Icons', 'Material Symbols Outlined', monospace !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+    }}
+
+    /* Also protect SVG icons from font override */
+    [data-testid] svg {{
+        font-family: sans-serif !important;
         letter-spacing: normal !important;
     }}
 
@@ -156,10 +162,12 @@ def load_custom_css(page: str = "default"):
     h2 {{ font-size: 2.5rem !important; }}
     h3 {{ font-size: 2rem !important; }}
 
-    p, span, div, li, td, th {{
+    p, li, td, th {{
         color: #000000;
         font-size: 1.1rem;
     }}
+
+    /* DO NOT style span/div globally — Streamlit icons render inside them */
 
     /* Metric Cards */
     [data-testid="stMetric"] {{
@@ -193,10 +201,67 @@ def load_custom_css(page: str = "default"):
         font-size: 1.2rem !important;
     }}
 
-    /* Sidebar */
+    /* Sidebar — light background, styled page links */
     [data-testid="stSidebar"] {{
         background-color: #f3f4f6;
-        border-right: 4px solid #000000;
+        border-right: 4px solid #C8102E;
+    }}
+
+    /* Navigation page links — card style with hover glow */
+    [data-testid="stSidebar"] [data-testid="stPageLink"] {{
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
+        padding: 0.5rem 0.8rem;
+        margin: 0.2rem 0;
+        border: 1px solid rgba(200, 16, 46, 0.15);
+        transition: all 0.2s ease;
+    }}
+
+    [data-testid="stSidebar"] [data-testid="stPageLink"] span {{
+        font-family: 'Bebas Neue', sans-serif !important;
+        color: #334155 !important;
+        font-size: 0.95rem !important;
+        letter-spacing: 0.05em;
+    }}
+
+    [data-testid="stSidebar"] [data-testid="stPageLink"]:hover {{
+        background: rgba(200, 16, 46, 0.1);
+        border-color: #C8102E;
+        box-shadow: 0 2px 10px rgba(200, 16, 46, 0.2);
+        transform: translateX(3px);
+    }}
+
+    [data-testid="stSidebar"] [data-testid="stPageLink"]:hover span {{
+        color: #C8102E;
+    }}
+
+    /* Active page link — red accent */
+    [data-testid="stSidebar"] [data-testid="stPageLink"][aria-current="page"],
+    [data-testid="stSidebar"] [data-testid="stPageLink-visited"] {{
+        background: linear-gradient(135deg, rgba(200, 16, 46, 0.12), rgba(123, 0, 255, 0.06));
+        border-color: #C8102E;
+        box-shadow: 0 2px 12px rgba(200, 16, 46, 0.25);
+    }}
+
+    [data-testid="stSidebar"] [data-testid="stPageLink"][aria-current="page"] span,
+    [data-testid="stSidebar"] [data-testid="stPageLink-visited"] span {{
+        color: #C8102E;
+        font-weight: 700;
+    }}
+
+    /* Sidebar headings — keep Bebas Neue but compact */
+    [data-testid="stSidebar"] h1 {{
+        font-size: 1.3rem !important;
+        color: #000000 !important;
+        padding: 0.5rem 0 0.25rem 0 !important;
+        margin: 0 !important;
+    }}
+
+    /* Sidebar alerts — styled for light background */
+    [data-testid="stSidebar"] [data-testid="stAlertContainer"] {{
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
     }}
 
     /* Buttons */

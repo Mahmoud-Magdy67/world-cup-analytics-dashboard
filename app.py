@@ -4,7 +4,7 @@ PAGE_TITLES=["Tournament Overview","Team Performance","Player Analysis","Match A
 PAGES=[st.Page("pages/overview.py",title="Tournament Overview"),st.Page("pages/teams.py",title="Team Performance"),st.Page("pages/players.py",title="Player Analysis"),st.Page("pages/matches.py",title="Match Analysis"),st.Page("pages/predictions.py",title="Predictions / Model Results"),st.Page("pages/methodology.py",title="Data & Methodology")]
 def build_navigation(): return st.navigation(PAGES)
 def main():
-    st.sidebar.title("World Cup Analytics")
+    st.sidebar.markdown("# ⚽ WC 2026 Analytics")
     from data.real_wc26 import get_real_wc26_data_source_status
     status = get_real_wc26_data_source_status()
     if status.mode == "s3_live":
