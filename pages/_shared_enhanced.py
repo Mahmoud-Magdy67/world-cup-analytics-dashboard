@@ -149,11 +149,22 @@ def load_custom_css(page: str = "default"):
     [data-testid="stBaseButton-secondary"] *,
     .stButton button,
     .stButton button *,
+    [data-testid="stToolbar.Actions"] button,
+    [data-testid="stToolbar.Actions"] button *,
+    button[aria-label],
+    button[aria-label] *,
     .material-icons,
     [class*="material"] {{
         font-family: 'Material Icons', 'Material Symbols Outlined', monospace !important;
         letter-spacing: normal !important;
         text-transform: none !important;
+    }}
+
+    /* Force SVG icons in Streamlit toolbar to display */
+    [data-testid="stToolbar"] svg,
+    [data-testid="stToolbar.Actions"] svg,
+    button svg {{
+        display: inline-block !important;
     }}
 
     [data-testid="collapsedControl"] span,
