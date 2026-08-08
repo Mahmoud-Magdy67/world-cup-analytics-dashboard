@@ -89,8 +89,7 @@ with col5:
 st.divider()
 
 # Tournament hero banner
-st.markdown(f"<div class='wc-hero'><b>🏆 Tournament Leaders</b><br/>")
-st.markdown("Real match-by-match stats from the actual tournament — not club season data, not predictions.</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='wc-hero'><b>🏆 Tournament Leaders</b><br/></div>", unsafe_allow_html=True)
 
 st.markdown("")
 
