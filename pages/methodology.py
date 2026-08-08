@@ -24,52 +24,6 @@ page_header(
     image_url="assets/logo.png"
 )
 
-# ============================================================================
-# DATA SOURCE STATUS
-# ============================================================================
-st.subheader("📊 Data Connection Status")
-matches = get_real_wc26_matches()
-teams_strength = get_real_wc26_team_strength()
-team_stats = get_real_wc26_team_stats()
-summary = get_real_wc26_summary()
-bracket = get_real_wc26_knockout_bracket()
-
-# Find the on-disk Kaggle data directory so we can actually list CSV files
-_KAGGLE_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data", "kaggle_wc26"
-)
-csv_files = {}
-if os.path.isdir(_KAGGLE_DIR):
-    for f in sorted(os.listdir(_KAGGLE_DIR)):
-        if f.endswith('.csv'):
-            p = os.path.join(_KAGGLE_DIR, f)
-            try:
-                with open(p, 'r', encoding='utf-8') as fh:
-                    # cheap row count: only count newlines, not pandas load
-                    rows = sum(1 for _ in fh) - 1
-                csv_files[f] = max(0, rows)
-            except Exception:
-                csv_files[f] = 0
-
-ok = not matches.empty
-real_s = summary.iloc[0] if not summary.empty else {}
-
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.metric("Kaggle Dataset", "🟢 Loaded" if ok else "🔴 Missing")
-with c2:
-    st.metric("CSV Files", len(csv_files))
-with c3:
-    st.metric("Matches", int(real_s.get('total_matches', len(matches))) if not summary.empty else len(matches))
-with c4:
-    st.metric("Teams", len(teams_strength))
-
-st.write(
-    "**Connection:** Data sourced from AWS S3 — tournament CSVs stored in cloud storage. "
-    "The dashboard reads directly from S3 at runtime."
-)
-
 st.divider()
 
 # ============================================================================
