@@ -529,7 +529,7 @@ if not rest_stats.empty:
             color='min_rest',
             color_discrete_map={
                 0: '#C8102E', 1: '#C8102E', 2: '#C8102E', 3: '#C8102E',
-                4: '#F4C542', 5: '#00a86b', 6: '#00a86b', 7: '#00a86b', 8: '#00a86b',
+                4: '#FF8C00', 5: '#00a86b', 6: '#00a86b', 7: '#00a86b', 8: '#00a86b',
                 9: '#00a86b', 10: '#00a86b', 11: '#00a86b', 12: '#00a86b', 13: '#00a86b',
             },
             hover_data={'min_rest': True, 'avg_rest': ':.1f', 'total_matches': True},
