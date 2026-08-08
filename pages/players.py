@@ -436,9 +436,4 @@ st.divider()
 # ============================================================================
 # APPROACH NOTE
 # ============================================================================
-info_card(
-    "WC 2026 Player Analytics",
-    "All player numbers above are **real World Cup 2026 tournament stats**. "
-    "1,248 players across 48 nations are covered. Club season statistics are excluded "
-    "."
-)
+# info_card removed per user request - data authenticity is implicit
