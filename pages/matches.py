@@ -94,34 +94,9 @@ team_perspective = pd.concat([home_rows, away_rows], ignore_index=True)
 team_perspective = team_perspective.sort_values(['team', 'date']).reset_index(drop=True)
 
 # ============================================================================
-# FILTERS
+# ALL MATCHES (filters removed per user request)
 # ============================================================================
-st.markdown("### 🎛️ Match Filters")
-c1, c2, c3, c4 = st.columns(4)
-
-stages = sorted(matches_df['stage_name'].dropna().unique().tolist())
-venues = sorted(matches_df['stadium_name'].dropna().unique().tolist())
-host_countries = sorted(matches_df['country'].dropna().unique().tolist())
-
-sel_stage = c1.selectbox("📅 Stage", ["All"] + stages)
-sel_venue = c2.selectbox("🏟️ Venue", ["All"] + venues)
-sel_host = c3.selectbox("🏳️ Host Country", ["All"] + host_countries)
-result_types = sorted(matches_df['result_type'].dropna().unique().tolist())
-sel_result = c4.selectbox("🎯 Result Type", ["All"] + result_types)
-
 filtered = matches_df.copy()
-if sel_stage != "All":
-    filtered = filtered[filtered['stage_name'] == sel_stage]
-if sel_venue != "All":
-    filtered = filtered[filtered['stadium_name'] == sel_venue]
-if sel_host != "All":
-    filtered = filtered[filtered['country'] == sel_host]
-if sel_result != "All":
-    filtered = filtered[filtered['result_type'] == sel_result]
-
-if filtered.empty:
-    st.warning("No matches match the selected filters.")
-    st.stop()
 
 st.divider()
 
@@ -526,7 +501,7 @@ if not rest_stats.empty:
         plot_df['rest_category'] = plot_df['min_rest'].astype(str)
         # Bar chart: each team on its own row, colored by min_rest category
         fig_rest = px.bar(
-            plot_df.sort_values('avg_rest', ascending=False),
+            plot_df.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]),
             x='avg_rest', y='team', orientation='h',
             color='rest_category',
             color_discrete_map={
@@ -543,6 +518,7 @@ if not rest_stats.empty:
             title=dict(font=dict(family='Bebas Neue', size=16, color='#2B1E16')),
             xaxis_title="Average Rest Days Between Matches",
             yaxis_title="",
+            yaxis=dict(autorange='reversed'),
             height=550, margin=dict(t=50, b=40, l=150, r=20),
         )
         st.plotly_chart(apply_dark_text_theme(fig_rest), width='stretch')
