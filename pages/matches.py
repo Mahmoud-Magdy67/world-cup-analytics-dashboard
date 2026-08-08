@@ -522,15 +522,17 @@ if not rest_stats.empty:
     with col1:
         # Sort by min_rest (lowest = toughest at top) then by avg_rest
         plot_df = rest_stats.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]).copy()
+        # Convert min_rest to string for discrete coloring (prevents continuous scale)
+        plot_df['rest_category'] = plot_df['min_rest'].astype(str)
         # Bar chart: each team on its own row, colored by min_rest category
         fig_rest = px.bar(
             plot_df.sort_values('avg_rest', ascending=False),
             x='avg_rest', y='team', orientation='h',
-            color='min_rest',
+            color='rest_category',
             color_discrete_map={
-                0: '#C8102E', 1: '#C8102E', 2: '#C8102E', 3: '#C8102E',
-                4: '#FF8C00', 5: '#00a86b', 6: '#00a86b', 7: '#00a86b', 8: '#00a86b',
-                9: '#00a86b', 10: '#00a86b', 11: '#00a86b', 12: '#00a86b', 13: '#00a86b',
+                '0': '#C8102E', '1': '#C8102E', '2': '#C8102E', '3': '#C8102E',
+                '4': '#FF8C00', '5': '#00a86b', '6': '#00a86b', '7': '#00a86b', '8': '#00a86b',
+                '9': '#00a86b', '10': '#00a86b', '11': '#00a86b', '12': '#00a86b', '13': '#00a86b',
             },
             hover_data={'min_rest': True, 'avg_rest': ':.1f', 'total_matches': True},
             title="Team Rest Distribution: Avg vs Minimum Rest Days",
