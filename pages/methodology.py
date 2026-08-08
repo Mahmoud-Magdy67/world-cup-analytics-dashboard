@@ -122,15 +122,7 @@ st.markdown("""
 - Complete coverage of the finished tournament
 - Cross-validation: 104 matches / 308 goals / 2.96 avg per match — matches the
   publicly reported tournament totals
-- Replaces the prior pre-tournament Athena/BQ simulation layer, which was
-  partial (group-stage only) and is now stale (the tournament is over)
 
-### Previously retired sources
-- AWS Athena views (`v_team_schedule`, `ml_group_fixture_predictions_*`,
-  `v_winner_prediction_*`): pre-tournament Monte Carlo simulations. Valid
-  only before 2026-06-11; now obsolete.
-- The `mominullptr` Kaggle dataset supersedes all of them for retrospective
-  analysis.
 """)
 
 st.divider()
