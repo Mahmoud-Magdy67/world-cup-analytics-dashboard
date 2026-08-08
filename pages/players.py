@@ -78,7 +78,7 @@ col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.metric("Players Tracked", f"{int(s['players_tracked']):,}")
 with col2:
-    st.metric("Goals Scored", f"{int(s['wc26_goals'])}", help="Player-attributed goals. Match total is 308; the 11-goal gap is own goals (own_goals column in the dataset).")
+    st.metric("Goals Scored", f"{int(s['wc26_goals'])}", help="Player-attributed goals (excludes own goals).")
 with col3:
     st.metric("Assists", f"{int(s['wc26_assists'])}")
 with col4:
