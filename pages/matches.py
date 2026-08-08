@@ -440,17 +440,17 @@ with col_g1:
     fig_bg.add_trace(go.Bar(
         y=['Goal Type'], x=[total_op],
         name=f'Open Play ({total_op})', marker_color='#C8102E', orientation='h',
-        text=[str(total_op)], textposition='inside',
+        text=[str(total_op)], textposition='inside', textfont=dict(color='white'),
     ))
     fig_bg.add_trace(go.Bar(
         y=['Goal Type'], x=[total_pk],
         name=f'Penalty ({total_pk})', marker_color='#F4C542', orientation='h',
-        text=[str(total_pk)], textposition='inside',
+        text=[str(total_pk)], textposition='inside', textfont=dict(color='#000000'),
     ))
     fig_bg.add_trace(go.Bar(
         y=['Goal Type'], x=[total_og],
         name=f'Own Goal ({total_og})', marker_color='#7B00FF', orientation='h',
-        text=[str(total_og)], textposition='inside',
+        text=[str(total_og)], textposition='inside', textfont=dict(color='white'),
     ))
     fig_bg.update_layout(
         barmode='stack',
