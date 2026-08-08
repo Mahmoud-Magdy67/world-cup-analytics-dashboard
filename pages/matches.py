@@ -673,7 +673,7 @@ if not xg_df.empty:
     info_card("xG Insight",
         f"High xG teams create many chances but fewer goals than their xG, showing that "
         f"finishing matters (e.g. average xG is {team_xg_stats['xg_for'].mean():.2f}/match). "
-        f"Low xGA means solid defending — the best teams sit bottom-left of both charts.")
+        f"Low xGA means solid defending — the best teams sit at the bottom of both charts.")
 st.divider()
 
 # ============================================================================
