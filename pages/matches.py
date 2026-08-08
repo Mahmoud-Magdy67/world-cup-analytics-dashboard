@@ -452,7 +452,7 @@ with col_g1:
     fig_bg.add_trace(go.Bar(
         y=['Goal Type'], x=[total_pk],
         name=f'Penalty ({total_pk})', marker_color='#F4C542', orientation='h',
-        text=[str(total_pk)], textposition='inside', textfont=dict(color='white'),
+        text=[str(total_pk)], textposition='inside', textfont=dict(color='#1a1a1a'),
         hoverlabel=dict(bgcolor='#333333', font=dict(color='white')),
     ))
     fig_bg.add_trace(go.Bar(
