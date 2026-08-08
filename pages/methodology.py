@@ -119,7 +119,7 @@ st.markdown("""
 
 ### Why this dataset
 - CC0 license → unrestricted redistribution in the repo
-- Complete coverage of the finished tournament (real results, not predictions)
+- Complete coverage of the finished tournament
 - Cross-validation: 104 matches / 308 goals / 2.96 avg per match — matches the
   publicly reported tournament totals
 - Replaces the prior pre-tournament Athena/BQ simulation layer, which was
@@ -232,7 +232,7 @@ raw Kaggle CSVs above. There is no black-box model. The key derivations:
 - The old Monte-Carlo championship probabilities have been retired —
   they were pre-tournament only and are no longer relevant post-tournament.
 - The page now shows **pre-tournament Elo / FIFA ranking** as a transparent
-  strength prior, and overlays each team's **actual tournament stage** (how
+  strength prior, and overlays each team's tournament stage (how
   far they reached) derived from the knockout bracket rows in `matches_detailed`.
 - "Elo Expected" stage is a **rank-quartile bucketing**, NOT a probabilistic
   model. It exists only to give the "Δ" over/underperformer column a baseline.

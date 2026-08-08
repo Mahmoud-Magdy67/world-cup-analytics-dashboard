@@ -1,6 +1,6 @@
 """
 Page 1: Tournament Analysis — Post-Tournament Review
-FIFA World Cup 2026 retrospective using the real Kaggle dataset
+FIFA World Cup 2026 retrospective
 (mominullptr/fifa-world-cup-2026-dataset, CC0): 104 matches, 308 goals,
 2.96 avg/match. Spain defeated Argentina 1-0 (AET) in the Final on 2026-07-19
 at MetLife Stadium, East Rutherford.
@@ -360,7 +360,7 @@ if not real_team_stats.empty:
     ))
     fig_goals.update_layout(
         barmode='group',
-        title="Top 10 Teams by Goals Scored (Real WC26 Results)",
+        title="Top 10 Teams by Goals Scored",
         xaxis_title='Team', yaxis_title='Goals',
         paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
         font=dict(color='#000000', family='Bebas Neue'),

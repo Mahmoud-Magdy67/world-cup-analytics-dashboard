@@ -51,7 +51,7 @@ st.markdown(
 # ============================================================================
 # LOAD DATA
 # ============================================================================
-with st.spinner("Loading real WC26 player stats from open Kaggle dataset..."):
+with st.spinner("Loading player stats..."):
     players = get_real_wc26_players()
     summary = get_real_wc26_player_summary()
     top_scorers = get_real_wc26_top_scorers(10)
@@ -346,7 +346,7 @@ fig_radar.update_layout(
     polar=dict(radialaxis=dict(visible=True, gridcolor=FWC26_SILVER)),
     paper_bgcolor=FWC26_WHITE,
     font=dict(color=FWC26_TEXT, family="Noto Sans"),
-    title=dict(text="<b>Top 8 Contributor Profiles</b> · Real WC26 stats · Per-90 normalised",
+    title=dict(text="<b>Top 8 Contributor Profiles</b> · Per-90 normalised",
                font=dict(family="Bebas Neue", size=18, color=FWC26_RED),
                x=0.5, xanchor="center", y=0.97),
     legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5,
@@ -440,5 +440,5 @@ info_card(
     "WC 2026 Player Analytics",
     "All player numbers above are **real World Cup 2026 tournament stats**. "
     "1,248 players across 48 nations are covered. Club season statistics are excluded "
-    "to avoid mixing historical league data with the actual tournament."
+    "."
 )

@@ -19,7 +19,7 @@ load_custom_css("matches")
 # Header
 page_header(
     "Match Analysis",
-    "Comprehensive match schedule, venue analysis, and fixture insights from the real WC26 results.",
+    "Comprehensive match schedule, venue analysis, and fixture insights.",
     image_url="assets/logo.png"
 )
 
@@ -595,7 +595,7 @@ if not daily.empty:
 st.divider()
 
 # ============================================================================
-# xG & POSSESSION ANALYSIS (new — only possible with real Kaggle data)
+# xG & POSSESSION ANALYSIS
 # ============================================================================
 st.subheader("🎯 xG Performance — Who Created & Conceded Chances")
 

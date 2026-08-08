@@ -1,12 +1,12 @@
 """
 Page 5: Pre-Tournament Strength vs Actual Outcomes
-Built entirely from the real Kaggle dataset (mominullptr/fifa-world-cup-2026-dataset):
+Built from the Kaggle dataset (mominullptr/fifa-world-cup-2026-dataset):
   - teams.csv pre-tournament Elo + FIFA ranking
   - matches_detailed.csv real knockout bracket → actual stage each team reached
 
 There is no championship-probability model in the Kaggle data, so this page
 reframes what used to be "Model Predictions" as a transparent Elo / FIFA-rank
-based strength index with the real tournament outcome overlaid.
+based strength index with tournament outcome overlaid.
 """
 from pages._shared_enhanced import st
 import plotly.express as px
@@ -27,7 +27,7 @@ page_header(
 
 with st.spinner("Loading team strength and knockout bracket..."):
     strength = get_real_wc26_team_strength()       # 48 teams: elo, fifa_rank, confederation, ...
-    matches = get_real_wc26_matches()               # 104 real matches, results in them
+    matches = get_real_wc26_matches()               # 104 matches
 
 if strength.empty or matches.empty:
     st.error("Failed to load Kaggle data.")
@@ -160,7 +160,7 @@ fig_elo = px.bar(
     top24, x='elo_rating', y='team_name', orientation='h',
     color='actual_outcome', color_discrete_map=color_map,
     labels={'elo_rating': 'Pre-tournament Elo', 'team_name': 'Team', 'actual_outcome': 'Actual Stage'},
-    title="Top 24 Teams by Elo — actual tournament stage in color",
+    title="Top 24 Teams by Elo — tournament stage in color",
 )
 fig_elo.update_layout(
     yaxis=dict(autorange='reversed'),
@@ -231,7 +231,7 @@ fig_scatter = px.scatter(
         'elo_rating': 'Elo Rating',
         'actual_outcome': 'Actual Stage',
     },
-    title="FIFA Ranking vs Elo — each team's actual tournament stage in color",
+    title="FIFA Ranking vs Elo — tournament stage in color",
 )
 # Invert x-axis so rank 1 is on the LEFT (better)
 fig_scatter.update_xaxes(autorange='reversed')

@@ -1,9 +1,9 @@
 """
 Page 2: Team Analytics
-Comprehensive analysis of 2026 World Cup teams using the real Kaggle dataset
+Comprehensive analysis of 2026 World Cup teams
 (mominullptr/fifa-world-cup-2026-dataset, CC0): 48 nations with Elo, FIFA
 ranking, manager, squad market value, and per-team in-match statistics
-(possession, shots, xG, fouls, etc.) aggregated from 104 real matches.
+(possession, shots, xG, fouls, etc.) aggregated from 104 matches.
 Matches the official FWC26 Light Theme.
 """
 try:
@@ -233,7 +233,7 @@ if sel_team != "None":
         weakest = cats[weakest_idx]
         strongest_diff = team_vals[strongest_idx] - avg_vals[strongest_idx]
 
-        insight_text = (f"Based on real WC26 in-match statistics, {sel_team}'s "
+        insight_text = (f"Based on in-match statistics, {sel_team}'s "
                         f"strongest tactical dimension is **{strongest}** ")
         if strongest_diff > 0:
             insight_text += f"({strongest_diff:+.1f} vs tournament average). "
@@ -289,7 +289,7 @@ st.plotly_chart(apply_dark_text_theme(fig_scatter), width='stretch')
 elite_teams = scatter_df[(scatter_df['attack_strength'] > avg_atk) & (scatter_df['defense_strength'] > avg_def)]
 elite_count = len(elite_teams)
 insight_text = (f"Teams in the top-right quadrant possess both elite attacking "
-                f"and defensive capabilities from real WC26 matches — a hallmark "
+                f"and defensive capabilities from matches — a hallmark "
                 f"of deep tournament runs. ")
 if elite_count > 0:
     elite_names = ", ".join(elite_teams['team_name'].head(3).tolist())
@@ -577,7 +577,7 @@ fig_balance = px.scatter(
         'balance_score': 'Tactical Imbalance (Std Dev — Lower = More Balanced)',
         confed_col: 'Confederation',
     },
-    title="Lower Y = More Balanced | Higher X = Stronger Overall (real WC26 stats)",
+    title="Lower Y = More Balanced | Higher X = Stronger Overall",
 )
 fig_balance.update_layout(
     paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
