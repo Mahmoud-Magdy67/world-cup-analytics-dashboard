@@ -329,11 +329,12 @@ def apply_dark_text_theme(fig):
     # Update only primary axes (xaxis, yaxis)
     for axis_name in ['xaxis', 'yaxis']:
         if axis_name in fig.layout:
-            fig.update_layout(**{{
+            axis_updates = {
                 f'{axis_name}_tickfont': dict(color=DARK, family='Noto Sans'),
                 f'{axis_name}_title_font': dict(color=DARK, family='Noto Sans'),
                 f'{axis_name}_gridcolor': '#e0e0e0',
-            }})
+            }
+            fig.update_layout(**axis_updates)
     # Color axis (for heatmaps) if present
     if 'coloraxis' in fig.layout:
         fig.update_layout(coloraxis_colorbar=dict(tickfont=dict(color=DARK)))
