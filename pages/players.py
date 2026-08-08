@@ -355,7 +355,6 @@ fig_radar.update_layout(
     margin=dict(t=60, b=120, l=80, r=80)
 )
 st.plotly_chart(apply_dark_text_theme(fig_radar), width='stretch')
-st.caption("Real per-90 figures derived from minutes_played in WC26 matches only.")
 st.divider()
 
 # ============================================================================
