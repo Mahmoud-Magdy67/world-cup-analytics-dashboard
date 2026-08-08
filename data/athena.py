@@ -1,15 +1,11 @@
 """
 data/athena.py — World Cup 2026 Analytics
 
-Reads the dashboard's analytical views from AWS Athena, which queries the real
-Kaggle WC26 dataset (mominullptr/fifa-world-cup-2026-dataset, CC0) uploaded to
-S3 under s3://wc2026-simulation-data/kaggle_wc26/ and materialized as 12
-external tables + 7 derived views in the worldcup_2026 Glue/Athena database.
+Reads the dashboard's analytical views from AWS Athena, which queries the
+Kaggle dataset uploaded to S3 and materialized as external tables + views.
 
 The migration is done by `migrate_kaggle_to_aws.py` (run once, idempotent).
 
-This module is the dashboard's only data layer — every page calls these
-loaders, every value is computed by Athena SQL over the real Kaggle data.
 """
 from dataclasses import dataclass
 from typing import Final, Optional, Dict

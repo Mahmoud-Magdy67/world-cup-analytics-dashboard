@@ -30,8 +30,8 @@ load_custom_css("teams")
 
 # Header
 page_header(
-    "Team Analytics",
-    "Deep dive into team strengths, tactical balances, and market valuations from real WC26 data.",
+    "Team Performance",
+    "Deep dive into team strengths and tactical balances",
     image_url="assets/logo.png"
 )
 
@@ -45,7 +45,7 @@ with st.spinner("Loading team metrics..."):
     matches = get_real_wc26_matches()                   # 104 rows: matches_detailed (for goals for/against)
 
 if teams_strength.empty:
-    st.error("Failed to load team data from the Kaggle dataset.")
+    st.error("Failed to load team stats from the Kaggle dataset.")
     st.stop()
 
 # ============================================================================
@@ -174,10 +174,10 @@ st.divider()
 # ============================================================================
 if sel_team != "None":
     st.subheader(f"🔍 Tactical Profile: {sel_team}")
-    st.caption("Tactical ratings are derived from real WC26 in-match statistics: "
-               "attack = goals scored per match, defense = fewest goals conceded, "
-               "midfield = possession share, goalkeeping = saves per match, "
-               "overall = Elo rating. All z-scored to a 60–95 scale for parity.")
+    st.caption("Tactical ratings are derived from in-match statistics:")
+    st.caption("attack = goals scored per match, defense = fewest goals conceded, ")
+    st.caption("midfield = possession share, goalkeeping = saves per match, ")
+    st.caption("overall = Elo rating. All z-scored to a 60–95 scale for parity.")
     team_data = filtered[filtered['team_name'] == sel_team].iloc[0]
 
     avg_attack = df['attack_strength'].mean()
@@ -607,7 +607,7 @@ most_balanced_name = most_balanced.iloc[0]['team_name'] if not most_balanced.emp
 info_card(
     "Tactical Balance Insight",
     f"The **Tactical Balance Index** measures the standard deviation between a team's "
-    f"Attack, Defense, and Midfield ratings (derived from real WC26 in-match statistics). "
+    f"Attack, Defense, and Midfield ratings (derived from in-match stats). "
     f"Teams with low imbalance scores have well-rounded squads — a critical factor in "
     f"tournament football where opponents vary in style. Highly imbalanced teams may "
     f"dominate in one phase but struggle when forced into their weak zone. "

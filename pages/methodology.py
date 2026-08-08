@@ -19,9 +19,9 @@ from data.real_wc26 import (
 
 load_custom_css("methodology")
 page_header(
-    "Data & Methodology",
-    "How this dashboard works — data source, schema, derived metrics, limitations.",
-    image_url="assets/logo.png",
+    "Methodology",
+    "Data sources, calculations, and validation approach",
+    image_url="assets/logo.png"
 )
 
 # ============================================================================

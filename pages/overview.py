@@ -22,7 +22,7 @@ load_custom_css("overview")
 
 page_header(
     "Tournament Analysis",
-    "FIFA World Cup 2026 — post-tournament retrospective on the real results",
+    "FIFA World Cup 2026 — post-tournament retrospective",
     image_url="assets/logo.png"
 )
 
@@ -38,7 +38,7 @@ with st.spinner("Loading tournament retrospective..."):
     bracket = get_real_wc26_knockout_bracket()
 
 if real_matches.empty:
-    st.error("Failed to load real WC26 results from the Kaggle dataset.")
+    st.error("Failed to load tournament results from the Kaggle dataset.")
     st.stop()
 
 real_s = real_summary.iloc[0]
@@ -110,7 +110,7 @@ with k5:
 st.write("")
 
 # ============================================================================
-# MATCH OUTCOME DISTRIBUTION (real results)
+# MATCH OUTCOME DISTRIBUTION
 # ============================================================================
 st.subheader("📊 Goals Per Stage — Where the Action Was")
 st.caption("Average goals per match broke down sharply between the group format and the knockout pressure cooker.")
@@ -319,18 +319,19 @@ st.dataframe(
 )
 
 info_card(
-    "AI Insight",
-    f"{winner} entered the tournament with an Elo of {spain_elo:.0f} "
-    f"(FIFA rank #{spain_rank}) and went on to outscore opponents {spain_goals}-{int(real_team_stats[real_team_stats['team']==winner]['goals_against'].iloc[0]) if not real_team_stats[real_team_stats['team']==winner].empty else 0} "
-    f"across the tournament. The concentration of UEFA + CONMEBOL sides at the top of the "
-    f"Elo ladder maps to the eventual semifinal lineup — the champion came from the European elite, "
-    f"as the Elo ranking would have suggested."
-)
+        "AI Insight",
+        f"{winner} entered the tournament with an Elo of {spain_elo:.0f} "
+        f"(FIFA rank #{spain_rank}) and went on to outscore opponents "
+        f"{spain_goals}-{int(real_team_stats[real_team_stats['team']==winner]['goals_against'].iloc[0]) if not real_team_stats[real_team_stats['team']==winner].empty else 0} "
+        f"across the tournament. The concentration of UEFA + CONMEBOL sides at the top of the "
+        f"Elo ladder maps to the eventual semifinal lineup — the champion came from the European elite, "
+        f"as the Elo ranking would have suggested."
+    )
 
 st.divider()
 
 # ============================================================================
-# GOALS ANALYSIS (real results)
+# GOALS ANALYSIS
 # ============================================================================
 st.subheader("🥅 Goals Analysis — Which Teams Delivered?")
 
@@ -380,7 +381,12 @@ if not real_team_stats.empty:
         )
         merged['actual_goals_rank'] = merged['goals_for'].rank(ascending=False).astype(int)
         merged['delta_rank'] = merged['elo_rank'] - merged['actual_goals_rank']
-        opp = merged.dropna(subset=['elo_rank']).sort_values('delta_rank', ascending=False).head(15)
+        
+        # Show BOTH top underperformers (negative delta) AND top overperformers (positive delta)
+        merged_valid = merged.dropna(subset=['elo_rank']).copy()
+        top_over = merged_valid.sort_values('delta_rank', ascending=False).head(8)  # highest positive
+        top_under = merged_valid.sort_values('delta_rank', ascending=True).head(8)  # lowest negative
+        opp = pd.concat([top_over, top_under]).drop_duplicates('team').sort_values('delta_rank', ascending=False)
 
         st.markdown("#### 📈 Over- vs Underperformers (actual goals vs pre-tournament Elo rank)")
         op_df = opp[['team', 'elo_rank', 'actual_goals_rank', 'delta_rank', 'goals_for']].rename(
@@ -406,9 +412,9 @@ else:
 st.divider()
 
 # ============================================================================
-# TOURNAMENT PROGRESSION — KNOCKOUT BRACKET (real results)
+# TOURNAMENT PROGRESSION — KNOCKOUT BRACKET
 # ============================================================================
-st.subheader("🏆 Knockout Bracket — Real Results")
+st.subheader("🏆 Knockout Bracket")
 
 if not bracket.empty:
     # Display bracket table sorted by stage order then date

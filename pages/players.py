@@ -22,7 +22,7 @@ load_custom_css("players")
 
 page_header(
     "Player Analytics",
-    "Real World Cup 2026 individual performance — 1,248 squad players across 48 nations.",
+    "Individual performance — 1,248 squad players across 48 nations.",
     image_url="assets/logo.png"
 )
 
@@ -62,7 +62,7 @@ with st.spinner("Loading real WC26 player stats from open Kaggle dataset..."):
     gk_leaders = get_real_wc26_gk_leaders(10)
 
 if players.empty or summary.empty:
-    st.error("Failed to load real WC26 player data from the Kaggle dataset.")
+    st.error("Failed to load player stats from the Kaggle dataset.")
     st.stop()
 
 s = summary.iloc[0]
@@ -89,12 +89,9 @@ with col5:
 st.divider()
 
 # Tournament hero banner
-st.markdown(
-    f"<div class='wc-hero'><b>🏆 World Cup 2026 Tournament Leaders</b><br/>"
-    "Real match-by-match stats from the actual tournament — not club season data, "
-    "not predictions.</div>",
-    unsafe_allow_html=True
-)
+    st.markdown(f"<div class='wc-hero'><b>🏆 Tournament Leaders</b><br/>")
+    st.markdown("Real match-by-match stats from the actual tournament — not club season data, not predictions.</div>", unsafe_allow_html=True)
+
 st.markdown("")
 
 # ============================================================================

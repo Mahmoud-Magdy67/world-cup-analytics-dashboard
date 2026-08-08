@@ -1,19 +1,12 @@
 """
 Page 4: Match Analysis
-Comprehensive analysis of World Cup 2026 matches using the real Kaggle dataset
+Comprehensive analysis of matches using the Kaggle dataset
 (mominullptr/fifa-world-cup-2026-dataset): 104 completed matches across 16 venues
 in 3 host nations, with scores, xG, lineups, and in-match statistics.
+
 Spain defeated Argentina 1-0 (AET) in the Final on 2026-07-19 at MetLife Stadium.
 Matches the official FWC26 Light Theme.
 """
-from pages._shared_enhanced import st
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from pages._shared_enhanced import load_custom_css, page_header, info_card, apply_dark_text_theme
-from pathlib import Path
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 from data.real_wc26 import (
     get_real_wc26_matches_enriched, get_real_wc26_knockout_bracket,
     get_real_wc26_venues, get_real_wc26_referees, STAGE_ORDER,

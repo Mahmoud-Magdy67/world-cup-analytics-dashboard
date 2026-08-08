@@ -201,7 +201,7 @@ fig_delta.update_layout(
     font=dict(color='#1e293b', family='Inter'),
     margin=dict(t=40, l=10, r=10, b=10),
 )
-st.plotly_chart(wcup_chart(fig_delta), use_container_width=True)
+st.plotly_chart(apply_dark_text_theme(fig_delta), use_container_width=True)
 
 info_card(
     "AI Insight",
@@ -210,7 +210,7 @@ info_card(
         f"— the #1 Elo seed. The Elo ranking correctly identified the champion."
         if champion == top_seed['team_name'] else
         f", ranked #{int(top_seed['fifa_ranking_pre_tournament'])} by FIFA pre-tournament. "
-        f"The actual champion, {champion}, was{'also' if False else ''} lower in the Elo seedings — "
+        f"The actual champion, {champion}, was lower in the Elo seedings — "
         f"a reminder that tournament football introduces knockout-stage variance no rating system fully captures."
     ),
 )
