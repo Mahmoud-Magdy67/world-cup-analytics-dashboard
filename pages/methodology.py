@@ -28,12 +28,11 @@ page_header(
 # DATA SOURCE STATUS
 # ============================================================================
 st.subheader("📊 Data Connection Status")
-with st.spinner("Checking Kaggle dataset availability..."):
-    matches = get_real_wc26_matches()
-    teams_strength = get_real_wc26_team_strength()
-    team_stats = get_real_wc26_team_stats()
-    summary = get_real_wc26_summary()
-    bracket = get_real_wc26_knockout_bracket()
+matches = get_real_wc26_matches()
+teams_strength = get_real_wc26_team_strength()
+team_stats = get_real_wc26_team_stats()
+summary = get_real_wc26_summary()
+bracket = get_real_wc26_knockout_bracket()
 
 # Find the on-disk Kaggle data directory so we can actually list CSV files
 _KAGGLE_DIR = os.path.join(
