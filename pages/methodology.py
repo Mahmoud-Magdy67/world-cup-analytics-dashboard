@@ -30,30 +30,44 @@ st.divider()
 # AVAILABLE TABLES — list every CSV in the Kaggle dataset
 # ============================================================================
 st.subheader("📋 Available Data Tables (Kaggle CSVs)")
-if csv_files:
-    table_df = pd.DataFrame([
-        {"File": f, "Rows (approx)": f"{n:,}", "Loaded by dashboard?": "—"}
-        for f, n in csv_files.items()
-    ])
-    # Mark which files the loaders actually use
-    used_files = {
-        'matches_detailed.csv', 'teams.csv', 'squads_and_players.csv',
-        'player_stats.csv', 'match_team_stats.csv', 'match_events.csv',
-        'match_lineups.csv', 'venues.csv',
-    }
-    table_df['Loaded by dashboard?'] = table_df['File'].apply(
-        lambda f: "✅ yes" if f in used_files else "— (auxiliary)")
-    st.dataframe(
-        table_df,
-        column_config={
-            "File": st.column_config.TextColumn("CSV File"),
-            "Rows (approx)": st.column_config.TextColumn("Row Count"),
-            "Loaded by dashboard?": st.column_config.TextColumn("Used?"),
-        },
-        hide_index=True, width='stretch',
-    )
-else:
-    st.info("No Kaggle CSV files found under data/kaggle_wc26/.")
+
+# List of CSV files in the Kaggle dataset
+csv_files = {
+    'matches_detailed.csv': '104',
+    'teams.csv': '48',
+    'squads_and_players.csv': '1248',
+    'player_stats.csv': '1248',
+    'match_team_stats.csv': '208',
+    'match_events.csv': '~4000',
+    'match_lineups.csv': '2496',
+    'venues.csv': '16',
+    'referees.csv': '~30',
+    'knockout_bracket.csv': '32',
+    'group_standings.csv': '48',
+    'tournament_summary.csv': '1',
+}
+
+table_df = pd.DataFrame([
+    {"File": f, "Rows (approx)": n, "Loaded by dashboard?": "—"}
+    for f, n in csv_files.items()
+])
+# Mark which files the loaders actually use
+used_files = {
+    'matches_detailed.csv', 'teams.csv', 'squads_and_players.csv',
+    'player_stats.csv', 'match_team_stats.csv', 'match_events.csv',
+    'match_lineups.csv', 'venues.csv',
+}
+table_df['Loaded by dashboard?'] = table_df['File'].apply(
+    lambda f: "✅ yes" if f in used_files else "— (auxiliary)")
+st.dataframe(
+    table_df,
+    column_config={
+        "File": st.column_config.TextColumn("CSV File"),
+        "Rows (approx)": st.column_config.TextColumn("Row Count"),
+        "Loaded by dashboard?": st.column_config.TextColumn("Used?"),
+    },
+    hide_index=True, width='stretch',
+)
 
 st.divider()
 
