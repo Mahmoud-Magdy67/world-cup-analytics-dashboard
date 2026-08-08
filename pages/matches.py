@@ -699,9 +699,9 @@ if not cap_data.empty:
         st.plotly_chart(apply_dark_text_theme(fig_cap), width='stretch')
 
     with col2:
-        st.metric("Average Capacity", f"{int(cap_data.mean()):,} seats")
-        st.metric("Median Capacity", f"{int(cap_data.median()):,} seats")
-        st.metric("Spread (Range)", f"{int(cap_data.min()):,} to {int(cap_data.max()):,} seats")
+        st.metric("Typical Venue Size", f"{int(cap_data.median()):,} seats")
+        st.metric("Smallest to Largest", f"{int(cap_data.min()):,} to {int(cap_data.max()):,}")
+        st.metric("Total Venues", f"{filtered['stadium_name'].nunique()} stadiums")
 
     with col3:
         # Sum unique venue capacities (not per-match — 104 matches reuse 16 venues)
