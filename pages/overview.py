@@ -171,6 +171,17 @@ st.divider()
 # TOURNAMENT UPSETS — Elo-based analysis
 # ============================================================================
 st.subheader("⚡ Tournament Upsets — When Lower-Ranked Teams Struck")
+
+# Elo explanation card (first mention)
+info_card(
+    "🧮 What is Elo Rating?",
+    "**Elo** is a relative skill rating system originally designed for chess, now used across football analytics. "
+    "Each team starts with a base rating (~1500), and points transfer from loser to winner after every match. "
+    "The formula accounts for expected outcome: beating a much stronger team earns more points than beating a weaker one. "
+    "In this dashboard, Elo is a **pre-tournament snapshot** from the Kaggle dataset — a transparent strength signal "
+    "independent of FIFA rankings. Higher Elo = stronger recent competitive record."
+)
+
 st.caption("An upset is defined as a team with a lower pre-tournament Elo beating a higher-Elo opponent. The Elo gap shows how big the shock was.")
 
 elo_map = dict(zip(teams_strength['team_name'], teams_strength['elo_rating']))
