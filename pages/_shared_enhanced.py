@@ -107,13 +107,10 @@ def load_custom_css(page: str = "default"):
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
     @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
-    /* Global Styles & Background */
+    /* Global Styles & Solid Background */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
-        background-color: #ffffff;
-        background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('{bg_url}') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
+        background-color: #f8fbed !important;
+        background-image: none !important;
     }}
 
     /* Let Streamlit's native sidebar collapse arrow render properly */
