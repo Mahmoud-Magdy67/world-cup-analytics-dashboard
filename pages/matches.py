@@ -471,8 +471,7 @@ info_card(
 # TEAM SCHEDULE BALANCE (rest days)
 # ============================================================================
 st.subheader("⚖️ Team Schedule Balance")
-# Build team-perspective schedule filtered to the same filters
-# Recompute team_perspective from filtered matches
+# Build team-perspective schedule
 f_home = filtered.rename(columns={
     'home_team_name': 'team', 'away_team_name': 'opponent'
 })[['match_id', 'date', 'team']]
@@ -493,55 +492,43 @@ rest_stats = team_sched.groupby('team').agg(
 rest_stats = rest_stats[rest_stats['total_matches'] > 1].dropna(subset=['avg_rest'])
 
 if not rest_stats.empty:
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        # Sort by min_rest (lowest = toughest at top) then by avg_rest
-        plot_df = rest_stats.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]).copy()
-        # Convert min_rest to string for discrete coloring (prevents continuous scale)
-        plot_df['rest_category'] = plot_df['min_rest'].astype(str)
-        # Bar chart: each team on its own row, colored by min_rest category
-        fig_rest = px.bar(
-            plot_df.sort_values(['min_rest', 'avg_rest'], ascending=[True, True]),
-            x='avg_rest', y='team', orientation='h',
-            color='rest_category',
-            color_discrete_map={
-                '0': '#C8102E', '1': '#C8102E', '2': '#C8102E', '3': '#C8102E',
-                '4': '#FF8C00', '5': '#00a86b', '6': '#00a86b', '7': '#00a86b', '8': '#00a86b',
-                '9': '#00a86b', '10': '#00a86b', '11': '#00a86b', '12': '#00a86b', '13': '#00a86b',
-            },
-            hover_data={'min_rest': True, 'avg_rest': ':.1f', 'total_matches': True},
-            title="Team Rest Distribution: Avg vs Minimum Rest Days",
-        )
-        fig_rest.update_layout(
-            paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-            font=dict(color='#2B1E16', family='Noto Sans'),
-            title=dict(font=dict(family='Bebas Neue', size=16, color='#2B1E16')),
-            xaxis_title="Average Rest Days Between Matches",
-            yaxis_title="",
-            yaxis=dict(autorange='reversed'),
-            height=550, margin=dict(t=50, b=40, l=150, r=20),
-        )
-        st.plotly_chart(apply_dark_text_theme(fig_rest), width='stretch')
-
-    with col2:
-        st.markdown("#### 📊 Rest Statistics")
-        toughest = rest_stats.loc[rest_stats['min_rest'].idxmin()]
-        best_rested = rest_stats.loc[rest_stats['min_rest'].idxmax()]
-        st.metric("Toughest Schedule", f"{toughest['team']}",
-                  f"{int(toughest['min_rest'])} min rest")
-        st.metric("Best Rested Team", f"{best_rested['team']}",
-                  f"{int(best_rested['min_rest'])} min rest")
-        st.metric("Avg. Rest (all teams)", f"{rest_stats['avg_rest'].mean():.1f} days")
+    # Summary metrics in a clean row
+    c1, c2, c3, c4 = st.columns(4)
+    toughest = rest_stats.loc[rest_stats['min_rest'].idxmin()]
+    best_rested = rest_stats.loc[rest_stats['min_rest'].idxmax()]
+    
+    with c1:
+        st.metric("Toughest Schedule", toughest['team'], f"{int(toughest['min_rest'])} days min rest")
+    with c2:
+        st.metric("Best Rested", best_rested['team'], f"{int(best_rested['min_rest'])} days min rest")
+    with c3:
+        st.metric("Avg Rest (all)", f"{rest_stats['avg_rest'].mean():.1f} days")
+    with c4:
         quick = rest_stats[rest_stats['min_rest'] <= 2]
-        if not quick.empty:
-            st.markdown("**⚠️ Teams with ≤2 day turnaround:**")
-            for _, t in quick.iterrows():
-                st.markdown(f"- {t['team']} ({int(t['min_rest'])} days)")
-
-    info_card("Scheduling Equity Insight",
-        f"Tournament scheduling aimed to provide equitable rest between matches. "
-        f"Teams with <3 days rest faced increased injury risk and performance fatigue. "
-        f"{len(quick)} teams had turnarounds of 2 days or less.")
+        st.metric("Teams with ≤2 day turnaround", f"{len(quick)} teams")
+    
+    # Schedule equity table sorted by min_rest (hardest schedules first)
+    display_df = rest_stats.sort_values('min_rest').copy()
+    display_df['avg_rest'] = display_df['avg_rest'].round(1)
+    display_df = display_df.rename(columns={
+        'team': 'Team',
+        'min_rest': 'Min Rest',
+        'avg_rest': 'Avg Rest', 
+        'max_rest': 'Max Rest',
+        'total_matches': 'Matches'
+    })
+    
+    st.dataframe(
+        display_df[['Team', 'Min Rest', 'Avg Rest', 'Max Rest', 'Matches']],
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            'Min Rest': st.column_config.NumberColumn('Min Rest', format='%d days'),
+            'Avg Rest': st.column_config.NumberColumn('Avg Rest', format='%.1f days'),
+            'Max Rest': st.column_config.NumberColumn('Max Rest', format='%d days'),
+            'Matches': st.column_config.NumberColumn('Matches', format='%d'),
+        }
+    )
 st.divider()
 
 # ============================================================================
