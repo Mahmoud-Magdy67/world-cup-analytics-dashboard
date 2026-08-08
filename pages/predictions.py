@@ -180,26 +180,28 @@ st.caption("Positive Δ = team went further than their Elo rank would predict. "
 delta_df = df.dropna(subset=['delta']).copy()
 delta_df['delta_label'] = delta_df['delta'].apply(
     lambda x: f"+{int(x)}" if x > 0 else (str(int(x)) if x < 0 else "0"))
-# Sort by delta desc; show top 15 over + top 15 under
-top_over = delta_df.sort_values('delta', ascending=False).head(15)
-top_under = delta_df.sort_values('delta', ascending=True).head(15)
+
+# Show top 12 overperformers AND top 12 underperformers (guaranteed both sides)
+top_over = delta_df.sort_values('delta', ascending=False).head(12)
+top_under = delta_df.sort_values('delta', ascending=True).head(12)
 combined = pd.concat([top_over, top_under]).drop_duplicates('team_name').sort_values('delta', ascending=False)
 
 fig_delta = px.bar(
     combined, x='delta', y='team_name', orientation='h',
     color='delta',
-    color_continuous_scale=['#FF004D', '#A0A0A0', '#00FF00'],
+    color_continuous_scale=['#ef4444', '#fbbf24', '#10b981'],  # red → amber → green
+    color_continuous_midpoint=0,  # center at 0
     text='delta_label',
     labels={'delta': 'Δ (stages further than Elo predicted)', 'team_name': 'Team'},
-    title="Top over- and underperformers vs Elo-based expectation",
+    title="Over- vs Underperformers vs Elo-based expectation",
 )
 fig_delta.update_layout(
     yaxis=dict(autorange='reversed'),
     paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
-    font=dict(color='#000000', family='Bebas Neue'),
+    font=dict(color='#1e293b', family='Inter'),
     margin=dict(t=40, l=10, r=10, b=10),
 )
-st.plotly_chart(apply_dark_text_theme(fig_delta), width='stretch')
+st.plotly_chart(wcup_chart(fig_delta), use_container_width=True)
 
 info_card(
     "AI Insight",
