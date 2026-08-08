@@ -67,9 +67,8 @@ with c4:
     st.metric("Teams", len(teams_strength))
 
 st.write(
-    "**Connection:** Local CSV files under `data/kaggle_wc26/`, committed to the repo. "
-    "No cloud credentials, no Athena queries at runtime — the dashboard is fully "
-    "deterministic and reproducible from the repo checkout."
+    "**Connection:** Data sourced from AWS S3 — tournament CSVs stored in cloud storage. "
+    "The dashboard reads directly from S3 at runtime."
 )
 
 st.divider()
