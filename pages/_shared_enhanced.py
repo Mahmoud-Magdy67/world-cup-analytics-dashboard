@@ -104,7 +104,8 @@ def load_custom_css(page: str = "default"):
 
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
     /* Global Styles & Background */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
@@ -121,7 +122,7 @@ def load_custom_css(page: str = "default"):
     }}
 
     /* Force Bebas Neue on main text — the dashboard's signature look */
-    h1, h2, h3, h4, h5, h6, p, li, td, th, label, button {{
+    h1, h2, h3, h4, h5, h6, p, li, td, th, label {{
         font-family: 'Bebas Neue', sans-serif;
         letter-spacing: 0.05em;
     }}
@@ -130,7 +131,13 @@ def load_custom_css(page: str = "default"):
        Without this, Bebas Neue overrides the icon font and icon names
        like 'keyboard_double_arrow_left' show as literal text */
     [data-testid="collapsedControl"],
+    [data-testid="collapsedControl"] *,
     [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapseButton"] *,
+    [data-testid="baseButton-header"],
+    [data-testid="baseButton-header"] *,
+    [data-testid="stToolbar"],
+    [data-testid="stToolbar"] *,
     .material-icons,
     [class*="material"] {{
         font-family: 'Material Icons', 'Material Symbols Outlined', monospace !important;
