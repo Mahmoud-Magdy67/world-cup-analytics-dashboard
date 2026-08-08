@@ -7,13 +7,19 @@ in 3 host nations, with scores, xG, lineups, and in-match statistics.
 Spain defeated Argentina 1-0 (AET) in the Final on 2026-07-19 at MetLife Stadium.
 Matches the official FWC26 Light Theme.
 """
+from pages._shared_enhanced import st, load_custom_css, page_header, info_card, apply_dark_text_theme
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
 from data.real_wc26 import (
     get_real_wc26_matches_enriched, get_real_wc26_knockout_bracket,
     get_real_wc26_venues, get_real_wc26_referees, STAGE_ORDER,
 )
 from data.real_wc26_players import _famous_name
 
-# Apply CSS
 load_custom_css("matches")
 
 # Header
