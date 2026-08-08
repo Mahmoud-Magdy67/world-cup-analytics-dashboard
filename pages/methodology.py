@@ -188,96 +188,33 @@ with st.expander("match_team_stats.csv — one row per team per match (208 rows)
 st.divider()
 
 # ============================================================================
-# DERIVED METRICS — how each page computes its numbers
+# MONTE CARLO SIMULATION (PRE-TOURNAMENT)
 # ============================================================================
-st.subheader("🧮 Derived Metrics — How Each Page Computes Its Numbers")
+st.subheader("🎲 Monte Carlo Simulation — Pre-Tournament Predictions")
 
 st.markdown("""
-Every metric shown on the dashboard is computed in `data/real_wc26.py` from the
-raw Kaggle CSVs above. There is no black-box model. The key derivations:
+Before the tournament began, we ran **10 million Monte Carlo simulations** on Google BigQuery to predict tournament outcomes:
 
-#### Tournament summary (Overview page)
-- **Total matches** = `len(matches_detailed)` → 104
-- **Total goals** = `home_score.sum() + away_score.sum() - own_goals` → 308
-  *(11 of the 308 goals are own goals, recorded as team totals of 297)*
-- **Avg goals/match** = `total_goals / 104` → 2.96
-- **Winner / Runner-up / Final score** = read from the Final row of `matches_detailed`
+#### How it worked
+- **Match-level probabilities**: Each match was simulated based on team strength (Elo ratings), historical performance, and tactical factors
+- **10 million runs**: The simulation ran 10 million independent tournament paths, sampling match outcomes probabilistically
+- **BigQuery scaling**: Google BigQuery's distributed compute allowed us to run millions of simulations in parallel
+- **Output**: For each team, we computed:
+  - Probability of reaching each knockout stage
+  - Championship probability
+  - Expected tournament progress (how far they'd likely go)
 
-#### Per-team stats
-- **Goals For / Against** = pivot `matches_detailed` to team-perspective (home_rows ∪ away_rows)
-- **W / D / L** = count matches grouped by `result_type` and score
-- **Goal difference** = GF − GA
+#### Why Monte Carlo?
+Monte Carlo simulation is ideal for tournaments because:
+- It captures the **knockout bracket structure** — one loss eliminates a team
+- It accounts for **path dependency** — who you play next depends on earlier results
+- It quantifies **uncertainty** — we get probability distributions, not single predictions
 
-#### Team Strength (Teams page)
-- **Elo / FIFA ranking / Squad value / Manager** = read directly from `teams.csv`
-- **Tactical radar dimensions** (attack, defense, midfield, GK, OVR) are **z-scored
-  from real in-match statistics**, not FIFA-OVR style ratings:
-  - `attack_strength` = goals_for / matches, z-scored → 60–95
-  - `defense_strength` = -(goals_against / matches), z-scored → 60–95 (fewer conceded = higher)
-  - `midfield_strength` = avg_possession from `match_team_stats`, z-scored
-  - `gk_strength` = avg_saves from `match_team_stats`, z-scored
-  - `avg_ovr_top11` = Elo (Kaggle has no FIFA-OVR; Elo is the overall proxy)
-- All z-scores are clipped to ±2σ and rescaled to [60, 95] purely so the radar
-  is comparable to the previous dashboard's visual scale.
-
-#### Strength Index vs Outcomes (Predictions page)
-- The old Monte-Carlo championship probabilities have been retired —
-  they were pre-tournament only and are no longer relevant post-tournament.
-- The page now shows **pre-tournament Elo / FIFA ranking** as a transparent
-  strength prior, and overlays each team's tournament stage (how
-  far they reached) derived from the knockout bracket rows in `matches_detailed`.
-- "Elo Expected" stage is a **rank-quartile bucketing**, NOT a probabilistic
-  model. It exists only to give the "Δ" over/underperformer column a baseline.
-
-#### Knockout bracket (Overview + Predictions)
-- Filter `matches_detailed` to `stage_name` ∈ {Round of 32, Round of 16,
-  Quarter-finals, Semifinals, Third-place match, Final} → 32 rows.
-- Order by `STAGE_ORDER` (module constant) then `date`.
-
-#### Player stats (Players page)
-- Loaded directly from `squads_and_players.csv` (1,248 players) and
-  `player_stats.csv` (per-tournament goals, assists, xG, xA, minutes).
-- The Kaggle player goals sum (297) is less than the match total (308)
-  because the 11-goal gap is own goals — credited to no individual player.
+#### How predictions compared to reality
+The Predictions page now shows **pre-tournament Elo rankings** as a transparent baseline, overlaid with each team's **actual tournament finish**. This lets you see which teams overperformed or underperformed relative to expectations — something the Monte Carlo model anticipated but couldn't know for certain.
 """)
 
-info_card(
-    "Reproducibility",
-    "Because every metric is a deterministic function of CSV files committed to "
-    "the repo, any reader can reproduce every number on the dashboard by running "
-    "the loaders in `data/real_wc26.py` against `data/kaggle_wc26/`. No external "
-    "API, no credentials, no cloud query at runtime."
-)
-
 st.divider()
-
-# ============================================================================
-# LIMITATIONS
-# ============================================================================
-st.subheader("⚠️ Limitations")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("""
-    ### Dataset limitations
-    - Kaggle-derived match stats are a curated subset; not every Opta/StatsBomb
-      field (e.g. x,y shot coordinates, pass maps) is available CC0.
-    - xG values are the dataset's pre-computed xG, not our own shot-based model.
-    - No per-minute game-state adjustment in the tactical radar — possession and
-      goals are full-match aggregates.
-    - Tactical dimensions are z-scored to the 60–95 scale for parity with the
-      previous FIFA-OVR radar; they are not FIFA ratings.
-    """)
-with col2:
-    st.markdown("""
-    ### What the dashboard is NOT
-    - It is **not a prediction engine**. The tournament is over; there is nothing
-      left to predict. The old pre-tournament Monte Carlo probabilities have been
-      retired.
-    - It is **not real-time**. The data reflects the completed WC26 tournament.
-    - It is **not exhaustive**. Stick to the Kaggle dataset's schema; if a field
-      is not in a CSV above, the dashboard does not have it.
-    """)
 
 st.divider()
 
