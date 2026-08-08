@@ -143,6 +143,12 @@ def load_custom_css(page: str = "default"):
     [data-testid="stSidebar"] [role="button"],
     button[kind="header"],
     button[kind="header"] *,
+    button[kind="tertiary"],
+    button[kind="tertiary"] *,
+    [data-testid="stBaseButton-secondary"],
+    [data-testid="stBaseButton-secondary"] *,
+    .stButton button,
+    .stButton button *,
     .material-icons,
     [class*="material"] {{
         font-family: 'Material Icons', 'Material Symbols Outlined', monospace !important;
